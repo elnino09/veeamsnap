@@ -45,6 +45,9 @@ void snapstore_device_done( void )
     }
 }
 
+/*
+ * 根据原始块设备号查找snapstore_device_t
+ */
 snapstore_device_t* snapstore_device_find_by_dev_id( dev_t dev_id )
 {
     content_t* content;
@@ -524,6 +527,7 @@ int snapstore_device_write( snapstore_device_t* snapstore_device, blk_redirect_b
     return res;
 }
 
+// 检查快照设备是否损坏，通过 corrupted 成员判断，说明如何检查损坏不是这里干的
 bool snapstore_device_is_corrupted( snapstore_device_t* snapstore_device )
 {
     if (snapstore_device == NULL)

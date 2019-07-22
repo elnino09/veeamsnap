@@ -6,6 +6,9 @@
 
 static container_sl_t trackers_container;
 
+/*
+ * 初始化全局container_sl_t变量trackers_container
+ */
 int tracker_init(void ){
     container_sl_init( &trackers_container, sizeof( tracker_t ) );
     return SUCCESS;
@@ -27,6 +30,11 @@ int tracker_done(void )
     return result;
 }
 
+/*
+ * 通过tracker_queue_t和扇区关系找到tracker_t，
+ * 1. 是同一个队列
+ * 2. sector落在跟踪设备的扇区范围内
+ */
 int tracker_find_by_queue_and_sector( tracker_queue_t* queue, sector_t sector, tracker_t** ptracker )
 {
     int result = -ENODATA;
@@ -50,6 +58,11 @@ int tracker_find_by_queue_and_sector( tracker_queue_t* queue, sector_t sector, t
     return result;
 }
 
+/*
+ * 通过tracker_queue_t和扇区关系找到tracker_t，
+ * 1. 是同一个队列
+ * 2. sector和跟踪设备的扇区范围有交集
+ */
 int tracker_find_intersection(tracker_queue_t* queue, sector_t b1, sector_t e1, tracker_t** ptracker)
 {
     int result = -ENODATA;
@@ -96,6 +109,11 @@ int tracker_find_by_dev_id( dev_t dev_id, tracker_t** ptracker )
     content_sl_t* content = NULL;
     tracker_t* tracker = NULL;
     CONTAINER_SL_FOREACH_BEGIN( trackers_container, content )
+//    read_lock( &trackers_container.lock );
+//    if (!list_empty( &trackers_container.headList )){
+//        struct list_head* _container_list_head;
+//        list_for_each( _container_list_head, &trackers_container.headList ){
+//            content = list_entry( _container_list_head, content_sl_t, link );
     {
         tracker = (tracker_t*)content;
         if (tracker->original_dev_id == dev_id){
@@ -104,11 +122,19 @@ int tracker_find_by_dev_id( dev_t dev_id, tracker_t** ptracker )
             break;
         }
     }
+//        }
+//    }
+//    read_unlock( &trackers_container.lock );
+
+
     CONTAINER_SL_FOREACH_END( trackers_container );
 
     return result;
 }
 
+/*
+ * 将跟踪的tracker的设备号、容量等信息赋值给cbt_info_s结构
+ */
 int tracker_enum_cbt_info( int max_count, struct cbt_info_s* p_cbt_info, int* p_count )
 {
     int result = -ENODATA;
@@ -149,6 +175,9 @@ int tracker_enum_cbt_info( int max_count, struct cbt_info_s* p_cbt_info, int* p_
     return result;
 }
 
+/*
+ * 给tracker几个成员cbt_map（创建cbt_map对象）、cbt_block_size_degree、device_capacity赋值
+*/
 void tracker_cbt_start( tracker_t* tracker, unsigned long long snapshot_id, unsigned int cbt_block_size_degree, sector_t device_capacity )
 {
     tracker_snapshot_id_set(tracker, snapshot_id);
@@ -159,6 +188,10 @@ void tracker_cbt_start( tracker_t* tracker, unsigned long long snapshot_id, unsi
     tracker->device_capacity = device_capacity;
 }
 
+/*
+ * 构造tracker_t对象并赋值，并修改对应块设备的make_request_fn
+ * 几个重要的结构：cbt_map_t、tracker_queue
+ */
 int tracker_create( unsigned long long snapshot_id, dev_t dev_id, unsigned int cbt_block_size_degree, tracker_t** ptracker )
 {
     int result = SUCCESS;
@@ -166,6 +199,7 @@ int tracker_create( unsigned long long snapshot_id, dev_t dev_id, unsigned int c
 
     *ptracker = NULL;
 
+    // 创建一个tracker_t对象并放在trackers_container的链表里
     tracker = (tracker_t*)container_sl_new( &trackers_container );
     if (NULL==tracker)
         return -ENOMEM;
@@ -176,6 +210,8 @@ int tracker_create( unsigned long long snapshot_id, dev_t dev_id, unsigned int c
 
     tracker->original_dev_id = dev_id;
 
+    // 获取block_device对象
+    // 这里open块设备后没有close，close是在tracker_remove里做的
     result = blk_dev_open( tracker->original_dev_id, &tracker->target_dev );
     if (result != SUCCESS)
         return result;
@@ -194,6 +230,7 @@ int tracker_create( unsigned long long snapshot_id, dev_t dev_id, unsigned int c
             tracker->is_unfreezable = true;
             break;
         }
+        // bdev_get_queue函数获取与块设备相关的请求队列q
         result = tracker_queue_ref( bdev_get_queue( tracker->target_dev ), &tracker->tracker_queue );
         superblock = blk_thaw_bdev( tracker->original_dev_id, tracker->target_dev, superblock );
 
@@ -216,6 +253,9 @@ int tracker_create( unsigned long long snapshot_id, dev_t dev_id, unsigned int c
     return result;
 }
 
+/*
+ * 释放tracker_queue、cbt_map_t结构体空间
+ */
 int _tracker_remove( tracker_t* tracker )
 {
     int result = SUCCESS;
@@ -252,7 +292,10 @@ int _tracker_remove( tracker_t* tracker )
     return result;
 }
 
-
+/*
+ * 释放tracker_queue、cbt_map_t结构体空间
+ * 释放tracker_t空间
+ */
 int tracker_remove(tracker_t* tracker)
 {
     int result = _tracker_remove( tracker );
@@ -262,7 +305,10 @@ int tracker_remove(tracker_t* tracker)
     return result;
 }
 
-
+/*
+ * 移除所有跟踪的设备
+ * 将 trackers_container 的链表清空
+*/
 int tracker_remove_all(void )
 {
     int result = SUCCESS;
@@ -328,6 +374,9 @@ void tracker_cbt_bitmap_unlock( tracker_t* tracker )
         cbt_map_read_unlock( tracker->cbt_map );
 }
 
+/*
+ * 调用创建defer_io_t对象并创建dio线程运行
+ */
 int _tracker_capture_snapshot( tracker_t* tracker )
 {
     int result = SUCCESS;
@@ -355,6 +404,9 @@ int _tracker_capture_snapshot( tracker_t* tracker )
 
 }
 
+/*
+ * 创建快照并检查快照是否损坏
+ */
 int tracker_capture_snapshot( snapshot_t* snapshot )
 {
     int result = SUCCESS;
@@ -371,7 +423,7 @@ int tracker_capture_snapshot( snapshot_t* snapshot )
             break;
         }
 
-
+        // 如果该块设备不支持freeze，那么通过信号量unfreezable_lock加锁
         if (tracker->is_unfreezable)
             down_write(&tracker->unfreezable_lock);
         else

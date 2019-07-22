@@ -37,20 +37,23 @@ void cbt_map_destroy_cb( void* this_resource )
     cbt_map_destroy( cbt_map );
 }
 
+/*
+ * 给cbt_map_t成员赋值
+*/
 int cbt_map_allocate( cbt_map_t* cbt_map, unsigned int cbt_sect_in_block_degree, sector_t blk_dev_sect_count )
 {
     size_t page_cnt;
     sector_t size_mod;
     cbt_map->sect_in_block_degree = cbt_sect_in_block_degree;
 
-    cbt_map->map_size = (blk_dev_sect_count >> (sector_t)cbt_sect_in_block_degree);
+    cbt_map->map_size = (blk_dev_sect_count >> (sector_t)cbt_sect_in_block_degree);  // 就是blk_dev_sect_count / 2**cbt_sect_in_block_degree
 
-    size_mod = (blk_dev_sect_count & ((sector_t)(1 << cbt_sect_in_block_degree) - 1));
+    size_mod = (blk_dev_sect_count & ((sector_t)(1 << cbt_sect_in_block_degree) - 1));  // 求余
     if (size_mod)
         cbt_map->map_size++;
 
     
-    page_cnt = cbt_map->map_size >> PAGE_SHIFT;
+    page_cnt = cbt_map->map_size >> PAGE_SHIFT;  // 该块设备需要几个页
     if (cbt_map->map_size & (PAGE_SIZE - 1))
         ++page_cnt;
 
@@ -90,6 +93,9 @@ void cbt_map_deallocate( cbt_map_t* cbt_map )
     cbt_map->active = false;
 }
 
+/*
+ * 2**blk_dev_sect_count就是每个块的大小（单位：扇区）
+*/
 cbt_map_t* cbt_map_create( unsigned int cbt_sect_in_block_degree, sector_t blk_dev_sect_count )
 {
     cbt_map_t* cbt_map = NULL;
@@ -105,6 +111,7 @@ cbt_map_t* cbt_map_create( unsigned int cbt_sect_in_block_degree, sector_t blk_d
 
         init_rwsem( &cbt_map->rw_lock );
 
+        // cbt_map的sharing_header->this_resource又指向cbt_map？
         shared_resource_init( &cbt_map->sharing_header, cbt_map, cbt_map_destroy_cb );
         return cbt_map;
     }
@@ -123,6 +130,9 @@ void cbt_map_destroy( cbt_map_t* cbt_map )
     }
 }
 
+/*
+ * 超过256个？？就重新开始？
+ */
 void cbt_map_switch( cbt_map_t* cbt_map )
 {
     log_tr( "CBT map switch" );

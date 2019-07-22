@@ -3,14 +3,14 @@
 
 #define SECTION "container "
 
-static atomic_t g_container_alloc_cnt = ATOMIC_INIT( 0 );
+static atomic_t g_container_alloc_cnt = ATOMIC_INIT( 0 );  // content_new_opt()里会atomic_inc，就是分配了多少个container
 
 int container_alloc_counter(void )
 {
     return atomic_read( &g_container_alloc_cnt );
 }
 
-int container_init( container_t* pContainer, int content_size )
+int container_init( container_t* pContainer, int content_size )  // 注意这里 content_size 不是sizeof Container，一般是包含Container的如content_t
 {
     INIT_LIST_HEAD( &pContainer->headList );
     init_rwsem( &pContainer->lock );
@@ -174,8 +174,8 @@ size_t container_push_back( container_t* pContainer, content_t* pCnt )
         if (NULL != pCnt){
             INIT_LIST_HEAD( &pCnt->link );
 
-            index = atomic_inc_return( &pContainer->cnt );
-            list_add_tail( &pCnt->link, &pContainer->headList );
+            index = atomic_inc_return( &pContainer->cnt );        // 节点数+1
+            list_add_tail( &pCnt->link, &pContainer->headList );  // 在pContainer->headList链表尾插入pCnt->link
         }
     } while (false);
     up_write( &pContainer->lock );
@@ -231,6 +231,8 @@ content_t* content_new_opt( container_t* pContainer, gfp_t gfp_opt )
 content_t* content_new( container_t* pContainer )
 {
     return content_new_opt(pContainer, GFP_KERNEL);
+    // 使用 GFP_ KERNEL 标志申请内存时，若暂时不能满足，则进程会睡眠等待页，即会引起阻塞，
+    // 因此不能在中断上下文或持有自旋锁的时候使用GFP_KERNE 申请内存
 }
 
 void content_free( content_t* pCnt )

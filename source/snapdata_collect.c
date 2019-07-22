@@ -294,7 +294,9 @@ int snapdata_collect_Get( dev_t dev_id, snapdata_collector_t** p_collector )
     return res;
 }
 
-
+/*
+ * 根据请求队列和bio操作的扇区找到对应的snapdata_collector_t对象
+ */
 int snapdata_collect_Find( struct request_queue *q, struct bio *bio, snapdata_collector_t** p_collector )
 {
     int res = -ENODATA;
@@ -316,19 +318,23 @@ int snapdata_collect_Find( struct request_queue *q, struct bio *bio, snapdata_co
     return res;
 }
 
-
+/*
+ * ofs: 该块数据相对块设备的偏移，单位是扇区
+ */
 int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struct bio_vec* bvec )
 {
     int res = SUCCESS;
     unsigned int bv_len;
     unsigned int bv_offset;
-    sector_t buff_ofs;
+    sector_t buff_ofs;  // 单位是byte
     void* mem;
     stream_size_t sectors_map = 0;
     bv_len = bvec->bv_len;
     bv_offset = bvec->bv_offset;
 
+    // bv_len >> SECTOR512_SHIFT  -- 这块数据占据多少个扇区
     if ((bv_len >> SECTOR512_SHIFT) > (sizeof( stream_size_t ) * 8)){ //because sectors_map have only 64 bits.
+                                                                       // stream_size_t是longlong占8字节，每字节8bit，共64bit
         log_err_format( "Unable to collect snapstore data location: large PAGE_SIZE [%ld] is not supported yet. bv_len=%d", PAGE_SIZE, bv_len );
         return -EINVAL;
     }
@@ -341,6 +347,7 @@ int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struc
         size_t compare_len = min( (size_t)SECTOR512, collector->magic_size );
 
         if (0 == memcmp( mem + buff_ofs, collector->magic_buff, compare_len )){
+            // sectors_map是扇区位图
             sectors_map |= (stream_size_t)1 << (stream_size_t)(buff_ofs >> SECTOR512_SHIFT);
             collector->collected_size += SECTOR512;
         }
@@ -353,8 +360,8 @@ int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struc
 
     mutex_lock(&collector->locker);
     for (buff_ofs = bv_offset; buff_ofs < (bv_offset + bv_len); buff_ofs += SECTOR512){
-        sector_t buff_ofs_sect = sector_from_size( buff_ofs );
-        if ((1ull << buff_ofs_sect) & sectors_map)
+        sector_t buff_ofs_sect = sector_from_size( buff_ofs );  // 这块数据是第几个扇区？
+        if ((1ull << buff_ofs_sect) & sectors_map)  // 这里说明上面memcmp() == 0了
         {
             stream_size_t index = ofs + buff_ofs_sect;
 #ifdef SNAPDATA_SPARSE_CHANGES
@@ -390,7 +397,7 @@ void snapdata_collect_Process( snapdata_collector_t* collector, struct bio *bio 
     if (unlikely(collector->fail_code != SUCCESS))
         return;
 
-    ofs = bio_bi_sector( bio ) - blk_dev_get_start_sect( collector->device );
+    ofs = bio_bi_sector( bio ) - blk_dev_get_start_sect( collector->device );  // bio操作的扇区相对块设备的偏移
     size = bio_sectors( bio );
 
     {
@@ -401,11 +408,11 @@ void snapdata_collect_Process( snapdata_collector_t* collector, struct bio *bio 
         struct bio_vec bvec;
         struct bvec_iter iter;
 #endif
-        bio_for_each_segment( bvec, bio, iter ) {
+        bio_for_each_segment( bvec, bio, iter ) {  // 遍历一个bio中所有的segment
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
             int err = _snapdata_collect_bvec( collector, ofs, bvec );
-            ofs += sector_from_size( bvec->bv_len );
+            ofs += sector_from_size( bvec->bv_len );  // _snapdata_collect_bvec已处理了一些数据，下一次从ofs开始处理
 #else
             int err = _snapdata_collect_bvec( collector, ofs, &bvec );
             ofs += sector_from_size( bvec.bv_len );

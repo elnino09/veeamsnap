@@ -12,8 +12,8 @@ typedef struct defer_io_s
     atomic_t queue_filling_count;
     wait_queue_head_t queue_throttle_waiter;
 
-    dev_t original_dev_id;
-    struct block_device*  original_blk_dev;
+    dev_t original_dev_id;                    // 跟踪的原始块设备号
+    struct block_device*  original_blk_dev;   // 跟踪的原始块设备
 
     snapstore_device_t* snapstore_device;
 

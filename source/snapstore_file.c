@@ -5,6 +5,9 @@
 #define SECTION "snapstore "
 #include "log_format.h"
 
+/*
+ * 根据设备号创建snapstore_file_t
+ */
 int snapstore_file_create( dev_t dev_id, snapstore_file_t** pfile )
 {
     int res = SUCCESS;

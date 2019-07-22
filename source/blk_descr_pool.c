@@ -7,14 +7,17 @@
 
 #define _POOL_EL_MAX_SIZE (8*PAGE_SIZE)
 
+/*
+ * blk_descr_size是blocks成员里数据类型的size
+ */
 static pool_el_t* pool_el_alloc( size_t blk_descr_size )
 {
     size_t el_size;
-    pool_el_t* el = (pool_el_t*)dbg_kmalloc_huge( _POOL_EL_MAX_SIZE, PAGE_SIZE, GFP_NOIO, &el_size );
+    pool_el_t* el = (pool_el_t*)dbg_kmalloc_huge( _POOL_EL_MAX_SIZE, PAGE_SIZE, GFP_NOIO, &el_size );  // 分配一坨空间，给blocks预留
     if (NULL == el)
         return NULL;
 
-    el->capacity = (el_size - sizeof( pool_el_t )) / blk_descr_size;
+    el->capacity = (el_size - sizeof( pool_el_t )) / blk_descr_size;  // 空间够放几个这种数据类型（大小为blk_descr_size）？
     el->used_cnt = 0;
 
     INIT_LIST_HEAD( &el->link );
@@ -62,6 +65,10 @@ void blk_descr_pool_done( blk_descr_pool_t* pool, blk_descr_cleanup_t blocks_cle
     mutex_unlock(&pool->lock);
 }
 
+/*
+ * 分配一个节点并加入到blk_descr_pool_t中，该节点大小由blk_descr_size指定（比如可能是一个sizeof( blk_descr_mem_t )）
+ * block_alloc是该节点的构造函数，如blk_descr_mem_alloc
+ */
 blk_descr_unify_t* blk_descr_pool_alloc( blk_descr_pool_t* pool, size_t blk_descr_size, blk_descr_alloc_t block_alloc, void* arg )
 {
     blk_descr_unify_t* blk_descr = NULL;
@@ -70,6 +77,7 @@ blk_descr_unify_t* blk_descr_pool_alloc( blk_descr_pool_t* pool, size_t blk_desc
     do{
         pool_el_t* el = NULL;
 
+        // 如果最后一个pool_el_t容量也用完了，name再分配一个并将其加入到链表尾
         if (!list_empty( &pool->head )){
             el = list_entry( pool->head.prev, pool_el_t, link );
             if (el->used_cnt == el->capacity)
@@ -86,7 +94,7 @@ blk_descr_unify_t* blk_descr_pool_alloc( blk_descr_pool_t* pool, size_t blk_desc
             ++pool->blocks_cnt;
         }
 
-        blk_descr = block_alloc( el->blocks, el->used_cnt, arg );
+        blk_descr = block_alloc( el->blocks, el->used_cnt, arg );  // el->used_cnt 也就是el->blocks下一个空闲的位置
 
         ++el->used_cnt;
         ++pool->total_cnt;
@@ -108,6 +116,10 @@ if (!list_empty( &(pool)->head )){ \
     } \
 }
 
+/*
+ * 根据blk_descr_unify_t的索引值从blk_descr_pool_t中取出blk_descr_unify_t节点
+ * （不一定是blk_descr_unify_t类型，可能是blk_descr_mem_t等，类型的大小由blk_descr_size指定）
+ */
 static blk_descr_unify_t* __blk_descr_pool_at( blk_descr_pool_t* pool, size_t blk_descr_size, size_t index )
 {
     void* bkl_descr = NULL;

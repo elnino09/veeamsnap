@@ -34,6 +34,10 @@ void blk_descr_mem_pool_done( blk_descr_pool_t* pool )
     blk_descr_pool_done( pool, blk_descr_mem_cleanup );
 }
 
+/*
+ * blocks: pool_el_t->blocks
+ * index： pool_el_t->used_cnt
+ */
 blk_descr_unify_t* blk_descr_mem_alloc( blk_descr_unify_t* blocks, size_t index, void* arg )
 {
     blk_descr_mem_t* mem_blocks = (blk_descr_mem_t*)blocks;

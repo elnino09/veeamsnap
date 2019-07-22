@@ -50,7 +50,7 @@
 #define VEEAM_SNAP_IMAGE "veeamimage"
 
 #define SECTOR512    512
-#define SECTOR512_SHIFT 9
+#define SECTOR512_SHIFT 9  // SECTOR512_SHIFT是9，2**9也就是512，常见的扇区大小
 #define SECTORS_IN_PAGE (PAGE_SIZE / SECTOR512)
 
 #define SUCCESS 0

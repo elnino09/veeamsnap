@@ -5,6 +5,10 @@
 #define SECTION "blk_descr "
 #include "log_format.h"
 
+/*
+ * first: 起始bit
+ * last: 结束bit
+ */
 int blk_descr_array_init( blk_descr_array_t* header, blk_descr_array_index_t first, blk_descr_array_index_t last )
 {
     size_t page_count = 0;
@@ -13,10 +17,12 @@ int blk_descr_array_init( blk_descr_array_t* header, blk_descr_array_index_t fir
     header->first = first;
     header->last = last;
 
+    // 容纳这么多bit需要多少个group？
     header->group_count = (size_t)((last + 1 - first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);
     if ((last + 1 - first) & BLK_DESCR_GROUP_LENGTH_MASK)
         ++(header->group_count);
 
+    // 容纳这么多group的指针需要多少个页？
     page_count = page_count_calc(header->group_count * sizeof(blk_descr_array_group_t*));
     header->groups = page_array_alloc( page_count, GFP_KERNEL);
     if (NULL == header->groups){
@@ -42,6 +48,9 @@ void blk_descr_array_done( blk_descr_array_t* header )
     }
 }
 
+/*
+ * 将header->groups里的blk_descr_array_group_t指针全部释放
+ */
 void blk_descr_array_reset( blk_descr_array_t* header )
 {
     size_t gr_idx;
@@ -58,6 +67,9 @@ void blk_descr_array_reset( blk_descr_array_t* header )
     }
 }
 
+/*
+ * 将第inx个数据设置为value
+ */
 int blk_descr_array_set( blk_descr_array_t* header, blk_descr_array_index_t inx, blk_descr_array_el_t value )
 {
     int res = SUCCESS;
@@ -74,13 +86,13 @@ int blk_descr_array_set( blk_descr_array_t* header, blk_descr_array_index_t inx,
             break;
         }
 
-        gr_idx = (size_t)((inx - header->first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);
-        if (SUCCESS != page_array_ptr_get(header->groups, gr_idx, (void**)&group)){
+        gr_idx = (size_t)((inx - header->first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);     // 先求出在第几个group
+        if (SUCCESS != page_array_ptr_get(header->groups, gr_idx, (void**)&group)){   // 再从page_array中取出group指针
             res = -EINVAL;
             break;
         }
         if (group == NULL){
-
+            // group还没分配内存的话则分配内存
             group = dbg_kzalloc(sizeof(blk_descr_array_group_t), GFP_NOIO);
             if (group == NULL){
                 res = -ENOMEM;
@@ -91,10 +103,10 @@ int blk_descr_array_set( blk_descr_array_t* header, blk_descr_array_index_t inx,
                 break;
             }
         }
-        val_idx = (size_t)((inx - header->first) & BLK_DESCR_GROUP_LENGTH_MASK);
+        val_idx = (size_t)((inx - header->first) & BLK_DESCR_GROUP_LENGTH_MASK);  // 这个是在group内偏移
 
-        bits = (1 << (val_idx & 0x7));
-        if (group->bitmap[val_idx >> 3] & bits){
+        bits = (1 << (val_idx & 0x7));  // 这个是在字节内的偏移
+        if (group->bitmap[val_idx >> 3] & bits){  // val_idx >> 3 是第几个字节
             // rewrite
         }
         else{
@@ -110,6 +122,9 @@ int blk_descr_array_set( blk_descr_array_t* header, blk_descr_array_index_t inx,
     return res;
 }
 
+/*
+ * 获取第inx个数据
+ */
 int blk_descr_array_get( blk_descr_array_t* header, blk_descr_array_index_t inx, blk_descr_array_el_t* p_value )
 {
     int res = SUCCESS;

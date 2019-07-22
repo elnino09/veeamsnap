@@ -14,7 +14,7 @@ int _snapshot_destroy( snapshot_t* p_snapshot );
 
 int snapshot_Init( void )
 {
-    return container_init( &Snapshots, sizeof( snapshot_t ) );
+    return container_init( &Snapshots, sizeof( snapshot_t ) );  // snapshot_t包含 content_t，content_t里又包含container_t
 }
 
 int snapshot_Done( void )
@@ -49,14 +49,14 @@ int _snapshot_New( dev_t* p_dev, int count, snapshot_t** pp_snapshot )
     snapshot_t* p_snapshot = NULL;
     dev_t* snap_set = NULL;
 
-    p_snapshot = (snapshot_t*)content_new( &Snapshots );
+    p_snapshot = (snapshot_t*)content_new( &Snapshots );    // snapshot_t { content_t content; ull id; dev_t* dev_id_set; int dev_id_set_size;}
     if (NULL == p_snapshot){
         log_err( "Unable to create snapshot: failed to allocate memory for snapshot structure" );
         return -ENOMEM;
     }
 
     do{
-        p_snapshot->id = (unsigned long long)( 0 ) + (unsigned long)(p_snapshot );
+        p_snapshot->id = (unsigned long long)( 0 ) + (unsigned long)(p_snapshot );  // p_snapshot 是content_new返回的地址
 
         p_snapshot->dev_id_set = NULL;
         p_snapshot->dev_id_set_size = 0;
@@ -69,14 +69,14 @@ int _snapshot_New( dev_t* p_dev, int count, snapshot_t** pp_snapshot )
                 result = -ENOMEM;
                 break;
             }
-            memcpy( snap_set, p_dev, buffer_length );
+            memcpy( snap_set, p_dev, buffer_length );  // 将p_dev 拷到 snap_set，也就是要备份的设备列表
         }
 
         p_snapshot->dev_id_set_size = count;
         p_snapshot->dev_id_set = snap_set;
 
         *pp_snapshot = p_snapshot;
-        container_push_back( &Snapshots, &p_snapshot->content );
+        container_push_back( &Snapshots, &p_snapshot->content );  // Snapshots是p_snapshot->content里的成员
     } while (false);
 
     if (result != SUCCESS){
@@ -224,6 +224,7 @@ int snapshot_Create( dev_t* dev_id_set, unsigned int dev_id_set_size, unsigned i
         {
             dev_t dev_id = snapshot->dev_id_set[inx];
 
+            // add device to snapshot tracking
             result = tracking_add(dev_id, cbt_block_size_degree, snapshot->id);
             if (result == -EALREADY)
                 result = SUCCESS;

@@ -1,13 +1,14 @@
 #pragma once
+// spinlock
 
 typedef struct container_sl_s
 {
     struct list_head headList;
 
-    rwlock_t lock;
+    rwlock_t lock;     // 读写锁
 
-    int content_size;
-    atomic_t cnt;
+    int content_size;  // 外层结构体（如tracker_t）的大小
+    atomic_t cnt;      // headList里有多少个content_sl_t节点
 }container_sl_t;
 
 typedef struct content_sl_s

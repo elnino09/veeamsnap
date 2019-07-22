@@ -22,6 +22,7 @@ void container_sl_init( container_sl_t* pContainer, int content_size )
     atomic_set( &pContainer->cnt, 0 );
 }
 
+// 检查container_sl_t结构体的链表是否已请款，并将content_size也置为0，这样后续不可能再构造content_t结构体了
 int container_sl_done( container_sl_t* pContainer )
 {
     int cnt;
@@ -53,21 +54,30 @@ content_sl_t* container_sl_new( container_sl_t* pContainer )
     return pCnt;
 }
 
+/*
+ * 将指定的content_sl_t从container_sl_t链表中删掉
+ */
 void _container_sl_free( container_sl_t* pContainer, content_sl_t* pCnt )
 {
     if (pCnt != NULL){
         write_lock( &pContainer->lock );
         {
+            // 从container_sl_t链表中删掉
             list_del( &pCnt->link );
         }
         write_unlock( &pContainer->lock );
 
         atomic_dec( &pContainer->cnt );
 
+        // 也释放pCnt，content_sl_free用的是memset( pCnt, 0xFF, pContainer->content_size );
+        // 考虑到初始化时用的是tracker_queue_t等，这里把整个tracker_queue_t内容给memset了
         content_sl_free( pCnt );
     }
 }
 
+/*
+ * 将指定的content_sl_t从container_sl_t链表中删掉
+ */
 void container_sl_free( content_sl_t* pCnt )
 {
     container_sl_t* pContainer = pCnt->container;
@@ -114,6 +124,10 @@ void container_sl_get( content_sl_t* pCnt )
     write_unlock( &pContainer->lock );
 }
 
+
+/*
+ * 获取trackers_container中的第一个content_sl_t节点，并把该节点从trackers_container链表中删掉
+ */
 content_sl_t* container_sl_get_first( container_sl_t* pContainer )
 {
     content_sl_t* pCnt = NULL;
@@ -152,6 +166,10 @@ content_sl_t* content_sl_new( container_sl_t* pContainer )
     return content_sl_new_opt( pContainer, GFP_KERNEL );
 }
 
+/*
+ * 释放content_sl_t节点空间，其实这里释放的空间要比content_sl_t大，因为通常content_sl_t是上层结构体的一个成员，
+ * 上层结构体的大小记录在content_sl_t->container->content_size里
+ */
 void content_sl_free( content_sl_t* pCnt )
 {
     if (pCnt){

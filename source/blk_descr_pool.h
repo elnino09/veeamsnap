@@ -19,7 +19,8 @@ typedef struct  pool_el_s
     size_t used_cnt; // used blocks
     size_t capacity; // blocks array capacity
 
-    blk_descr_unify_t blocks[0];
+    blk_descr_unify_t blocks[0];  // 数据部分类型不是blk_descr_unify_t，可能是blk_descr_mem_t之类的
+                                  // blk_descr_mem_t第一个成员就是blk_descr_unify_t结构体
 }pool_el_t;
 
 void blk_descr_pool_init( blk_descr_pool_t* pool, size_t available_blocks );

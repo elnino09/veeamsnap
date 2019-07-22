@@ -4,7 +4,7 @@
 
 typedef struct page_info_s{
     struct page* page;
-    void* addr;
+    void* addr;        // 页的虚拟地址
 }page_info_t;
 
 typedef struct page_array_s

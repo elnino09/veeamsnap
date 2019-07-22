@@ -7,8 +7,8 @@ typedef struct snapshot_s
     content_t content;
     unsigned long long id;
 
-    dev_t* dev_id_set;    //array
-    int dev_id_set_size;
+    dev_t* dev_id_set;    // 需要创建快照的块设备dev_t列表
+    int dev_id_set_size;  // length of dev_id_set
 }snapshot_t;
 
 int snapshot_Init( void );

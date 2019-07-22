@@ -203,7 +203,10 @@ void _defer_io_destroy( void* this_resource )
     log_tr("Defer IO processor was destroyed");
 }
 
-
+/*
+ * 分配defer_io_t结构体并赋值
+ * 创建dio线程并运行
+ */
 int defer_io_create( dev_t dev_id, struct block_device* blk_dev, defer_io_t** pp_defer_io )
 {
     int res = SUCCESS;
@@ -226,6 +229,7 @@ int defer_io_create( dev_t dev_id, struct block_device* blk_dev, defer_io_t** pp
         defer_io->original_dev_id = dev_id;
         defer_io->original_blk_dev = blk_dev;
 
+        // 先根据设备号找对对应的snapstore_device，并赋值给defer_io->snapstore_device
         {
             snapstore_device_t* snapstore_device = snapstore_device_find_by_dev_id( defer_io->original_dev_id );
             if (NULL == snapstore_device){
@@ -253,6 +257,7 @@ int defer_io_create( dev_t dev_id, struct block_device* blk_dev, defer_io_t** pp
         //    break;
         //}
 
+        // 创建线程
         defer_io->dio_thread = kthread_create( defer_io_work_thread, (void *)defer_io, "veeamdeferio%d:%d", MAJOR( dev_id ), MINOR( dev_id ) );
         if (IS_ERR( defer_io->dio_thread )) {
             res = PTR_ERR( defer_io->dio_thread );

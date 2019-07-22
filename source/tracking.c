@@ -14,6 +14,7 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
 
 #ifdef HAVE_MAKE_REQUEST_INT
+// 用来替换块设备原始的make_request_fn函数
 int tracking_make_request(struct request_queue *q, struct bio *bio)
 #else
 void tracking_make_request(struct request_queue *q, struct bio *bio)
@@ -188,9 +189,11 @@ int tracking_add(dev_t dev_id, unsigned int cbt_block_size_degree, unsigned long
             if (result != SUCCESS)
                 break;
 
-            sectStart = blk_dev_get_start_sect(target_dev);
-            sectEnd = blk_dev_get_capacity(target_dev) + sectStart;
+            sectStart = blk_dev_get_start_sect(target_dev);  // 起始扇区
+            sectEnd = blk_dev_get_capacity(target_dev) + sectStart;  // 结束扇区
 
+            /* gendisk *    bd_disk通用磁盘抽象，当该block_device作为分区抽象时，指向该分区所属的gendisk，当作为gendisk的抽象时，指向自身 */
+            /* struct request_queue *queue 该disk关联的请求队列 */
             if (SUCCESS == tracker_queue_find(target_dev->bd_disk->queue, &tracker_queue)){// can be only one
                 tracker_t* old_tracker = NULL;
 

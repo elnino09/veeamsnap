@@ -10,8 +10,8 @@ typedef struct cbt_map_s
 
     spinlock_t locker;
 
-    size_t   sect_in_block_degree;
-    size_t   map_size;
+    size_t   sect_in_block_degree;  // 每个块里有2**sect_in_block_degree个扇区
+    size_t   map_size;              // 该块设备有几个块
 
     page_array_t*  read_map;
     page_array_t*  write_map;

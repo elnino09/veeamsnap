@@ -6,13 +6,16 @@
 #define SECTION "blk       "
 #include "log_format.h"
 
+/*
+打开块设备，根据dev_id打开对应的块设备，p_blk_dev保存打开的块设备
+*/
 int blk_dev_open( dev_t dev_id, struct block_device** p_blk_dev )
 {
     int result = SUCCESS;
     struct block_device* blk_dev;
     int refCount;
 
-    blk_dev = bdget( dev_id );
+    blk_dev = bdget( dev_id );  // 根据块设备文件对应的设备标识符，在bdev文件系统中查找或新建一个索引节点、块设备描述符，返回块设备描述符的地址
     if (NULL == blk_dev){
         log_err_format( "Unable to open device [%d:%d]: bdget returned NULL", MAJOR( dev_id ), MINOR( dev_id ) );
         return -ENODEV;
@@ -21,7 +24,11 @@ int blk_dev_open( dev_t dev_id, struct block_device** p_blk_dev )
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,38)
     refCount = blkdev_get( blk_dev, FMODE_READ | FMODE_WRITE );
 #else
-    refCount = blkdev_get( blk_dev, FMODE_READ | FMODE_WRITE, NULL );
+    // 打开块设备
+    // Open bdev with mode. If mode includes FMODE_EXCL, bdev is open with exclusive access.
+    // Specifying FMODE_EXCL with NULL holder is invalid. Exclusive opens may nest for the same holder.
+    // On success, the reference count of bdev is unchanged. On failure, bdev is put.
+    refCount = blkdev_get( blk_dev, FMODE_READ | FMODE_WRITE, NULL );  // FMODE_WRITE?
 #endif
     if (refCount < 0){
         log_err_format( "Unable to open device [%d,%d]: blkdev_get returned errno=%d", MAJOR( dev_id ), MINOR( dev_id ), 0 - refCount );
@@ -35,6 +42,16 @@ int blk_dev_open( dev_t dev_id, struct block_device** p_blk_dev )
 
 void blk_dev_close( struct block_device* blk_dev )
 {
+    /*
+    >> * blkdev_get() is extended to include exclusive access management.
+    >>   @holder argument is added and, if is @FMODE_EXCL specified, it will
+    >>   gain exclusive access atomically w.r.t. other exclusive accesses.
+    >>
+    >> * blkdev_put() is similarly extended.  It now takes @mode argument and
+    >>   if @FMODE_EXCL is set, it releases an exclusive access.  Also, when
+    >>   the last exclusive claim is released, the holder/slave symlinks are
+    >>   removed automatically.
+    */
     blkdev_put( blk_dev, FMODE_READ );
 }
 
@@ -96,7 +113,9 @@ int blk_dev_get_info( dev_t dev_id, blk_dev_info_t* pdev_info )
     return result;
 }
 
-
+/*
+ * 尝试调用freeze_bdev来freeze设备
+ */
 int blk_freeze_bdev( dev_t dev_id, struct block_device* device, struct super_block** psuperblock )
 {
     struct super_block* superblock;
@@ -126,6 +145,9 @@ int blk_freeze_bdev( dev_t dev_id, struct block_device* device, struct super_blo
     return SUCCESS;
 }
 
+/*
+ * 尝试调用thaw_bdev来解冻设备
+ */
 struct super_block* blk_thaw_bdev( dev_t dev_id, struct block_device* device, struct super_block* superblock )
 {
     if (superblock != NULL){

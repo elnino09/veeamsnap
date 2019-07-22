@@ -42,7 +42,7 @@ struct ioctl_dev_id_s{
 
 struct cbt_info_s{
     struct ioctl_dev_id_s dev_id;
-    unsigned long long dev_capacity;
+    unsigned long long dev_capacity;  // 设备容量，单位是B
     unsigned int cbt_map_size;
     unsigned char snap_number;
     unsigned char generationId[16];

@@ -5,8 +5,8 @@ typedef struct _container
     struct list_head headList;
 
     struct rw_semaphore lock;
-    int content_size;
-    atomic_t cnt;
+    int content_size;         // 这个content_size不是container_t的大小，而是上层结构的大小，如content_t、snapshot_t
+    atomic_t cnt;             // 节点数目
 }container_t;
 
 typedef struct content_s
