@@ -40,7 +40,7 @@ typedef struct trace_page_s
     trace_record_t records[0];
 }trace_page_t;
 
-#define TRACE_RECORDS_PER_PAGE ((PAGE_SIZE - offsetof(trace_page_t, records)) / sizeof(trace_record_t))
+#define TRACE_RECORDS_PER_PAGE ((PAGE_SIZE - offsetof(trace_page_t, records)) / sizeof(trace_record_t))  // 每个页能放几个trace_record_t
 #endif
 
 typedef struct snapimage_s{
@@ -103,6 +103,9 @@ void image_trace_init(snapimage_t* image)
     spin_lock_init(&image->trace_lock);
 }
 
+/*
+ * 新分配一个page（trace_page_t），并添加到image->trace_list链表上
+ */
 trace_page_t* image_trace_new_page(snapimage_t* image)
 {
     trace_page_t* trace_page = NULL;

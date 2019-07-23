@@ -255,7 +255,10 @@ int tracking_remove( dev_t dev_id )
     return result;
 }
 
-
+/*
+ * 遍历trackers_container，将所有已跟踪的tracker的设备号、容量等信息赋值给cbt_info_s结构
+ * p_cbt_info为null的话就不用赋值了
+ */
 int tracking_collect( int max_count, struct cbt_info_s* p_cbt_info, int* p_count )
 {
     int res = tracker_enum_cbt_info( max_count, p_cbt_info, p_count );

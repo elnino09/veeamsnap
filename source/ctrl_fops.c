@@ -172,6 +172,9 @@ int ioctl_tracking_remove( unsigned long arg )
     return tracking_remove( MKDEV( dev.major, dev.minor ) );;
 }
 
+/*
+ * 从trackers_container中获取所有的已跟踪设备列表
+ */
 int ioctl_tracking_collect( unsigned long arg )
 {
     int res;

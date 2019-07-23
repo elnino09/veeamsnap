@@ -37,6 +37,7 @@ int tracker_queue_done(void )
     return result;
 }
 
+// 将请求队列和追踪队列tracker_queue_t关联
 // find or create new tracker queue
 // 将queue里的 make_request_fn 更换为 tracking_make_request ，
 // 同时用 ptracker_queue->original_make_request_fn 记录 queue 原来的 make_request_fn

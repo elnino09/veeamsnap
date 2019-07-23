@@ -47,13 +47,14 @@ int cbt_map_allocate( cbt_map_t* cbt_map, unsigned int cbt_sect_in_block_degree,
     cbt_map->sect_in_block_degree = cbt_sect_in_block_degree;
 
     cbt_map->map_size = (blk_dev_sect_count >> (sector_t)cbt_sect_in_block_degree);  // 就是blk_dev_sect_count / 2**cbt_sect_in_block_degree
+                                                                                     // 要保存这些cbt块，size是这么大
 
     size_mod = (blk_dev_sect_count & ((sector_t)(1 << cbt_sect_in_block_degree) - 1));  // 求余
     if (size_mod)
         cbt_map->map_size++;
 
     
-    page_cnt = cbt_map->map_size >> PAGE_SHIFT;  // 该块设备需要几个页
+    page_cnt = cbt_map->map_size >> PAGE_SHIFT;  // 保存这些cbt块需要几个页
     if (cbt_map->map_size & (PAGE_SIZE - 1))
         ++page_cnt;
 
@@ -94,7 +95,8 @@ void cbt_map_deallocate( cbt_map_t* cbt_map )
 }
 
 /*
- * 2**blk_dev_sect_count就是每个块的大小（单位：扇区）
+ * 2**blk_dev_sect_count就是每个cbt块的大小（单位：扇区）
+ * blk_dev_sect_count: 设备容量（扇区）
 */
 cbt_map_t* cbt_map_create( unsigned int cbt_sect_in_block_degree, sector_t blk_dev_sect_count )
 {

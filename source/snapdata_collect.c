@@ -37,7 +37,9 @@ int snapdata_collect_Done( void )
     return res;
 }
 
-
+/*
+ * 分配、初始化collector，关联请求队列-追踪队列
+ */
 int _collector_init( snapdata_collector_t* collector, dev_t dev_id, void* MagicUserBuff, size_t MagicLength )
 {
     int res = SUCCESS;
@@ -70,8 +72,8 @@ int _collector_init( snapdata_collector_t* collector, dev_t dev_id, void* MagicU
     sparsebitmap_create( &collector->changes_sparse, 0, blk_dev_get_capacity( collector->device ) );
 #else
     {
-        stream_size_t bitmap_size = blk_dev_get_capacity( collector->device ) / BITS_PER_BYTE;
-        size_t page_count = (size_t)(bitmap_size >> PAGE_SHIFT);
+        stream_size_t bitmap_size = blk_dev_get_capacity( collector->device ) / BITS_PER_BYTE;  // 每个扇区一个bit，需要这么多字节保存快照位图
+        size_t page_count = (size_t)(bitmap_size >> PAGE_SHIFT);                                // 需要这么多页保存快照位图
         if ((bitmap_size & (PAGE_SIZE - 1)) != 0)
             ++page_count;
 
@@ -105,7 +107,9 @@ int _collector_init( snapdata_collector_t* collector, dev_t dev_id, void* MagicU
     return res;
 }
 
-
+/*
+ * 解关联请求队列-追踪队列
+ */
 void _collector_stop( snapdata_collector_t* collector )
 {
     if (collector->tracker_queue != NULL){
@@ -114,7 +118,9 @@ void _collector_stop( snapdata_collector_t* collector )
     }
 }
 
-
+/*
+ * 解关联请求队列-追踪队列，释放snapdata_collector_t空间
+ */
 void _collector_free( snapdata_collector_t* collector )
 {
     _collector_stop( collector );
@@ -162,6 +168,9 @@ int snapdata_collect_LocationStart( dev_t dev_id, void* MagicUserBuff, size_t Ma
     return res;
 }
 
+/*
+ * 从[{0, 1}, {4, 3}]这样的rangelist中获取 4（ranges_length），2（count）
+ */
 void rangelist_calculate(rangelist_t* rangelist, sector_t *ranges_length, size_t *count, bool make_output)
 {
     //calculate and show information about ranges
@@ -183,6 +192,10 @@ void rangelist_calculate(rangelist_t* rangelist, sector_t *ranges_length, size_t
 }
 
 #ifndef SNAPDATA_SPARSE_CHANGES
+/*
+ * 从页组中获取length长度的位图数据，从位图转换为range_t表示方式
+ * 如从 10001110转换成 [{0, 1}, {4, 3}]
+ */
 int page_array_convert2rangelist(page_array_t* changes, rangelist_t* rangelist, stream_size_t start_index, stream_size_t length)
 {
     int res = SUCCESS;
@@ -200,11 +213,11 @@ int page_array_convert2rangelist(page_array_t* changes, rangelist_t* rangelist, 
                 rg.ofs = start_index + index;
             ++rg.cnt;
         }
-        else{
+        else{  // 说明前一个范围已经结束
             if (rg.cnt == 0){
                 // nothing
             }
-            else{
+            else{  // 再增加一个节点，记录新的块范围
                 res = rangelist_add(rangelist, &rg);
                 rg.cnt = 0;
             }
@@ -220,6 +233,9 @@ int page_array_convert2rangelist(page_array_t* changes, rangelist_t* rangelist, 
 }
 #endif
 
+/*
+ * 根据设备号（dev_id）获取快照数据范围如[{0, 1}, {4, 3}]（rangelist），ranges_count记录有几个这样的range_t
+ */
 int snapdata_collect_LocationGet( dev_t dev_id, rangelist_t* rangelist, size_t* ranges_count )
 {
     size_t count = 0;
@@ -275,7 +291,9 @@ int snapdata_collect_LocationComplete( dev_t dev_id )
     return res;
 }
 
-
+/*
+ * 根据dev_id找到snapdata_collector_t对象
+ */
 int snapdata_collect_Get( dev_t dev_id, snapdata_collector_t** p_collector )
 {
     int res = -ENODATA;
@@ -319,6 +337,8 @@ int snapdata_collect_Find( struct request_queue *q, struct bio *bio, snapdata_co
 }
 
 /*
+ * bvec: bio_vec 是组成 bio 数据的最小单位，他包含了一块数据所在的页，这块数据所在的页内偏移以及长度，
+ *       通过这些信息就可以很清晰的描述数据具体位于什么位置
  * ofs: 该块数据相对块设备的偏移，单位是扇区
  */
 int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struct bio_vec* bvec )
@@ -343,12 +363,13 @@ int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struc
 #else
     mem = kmap_atomic( bvec->bv_page ) ;
 #endif
-    for (buff_ofs = bv_offset; buff_ofs < ( bv_offset + bv_len ); buff_ofs+=SECTOR512){
+    for (buff_ofs = bv_offset; buff_ofs < ( bv_offset + bv_len ); buff_ofs+=SECTOR512){  // 逐个扇区大小遍历bvec数据
         size_t compare_len = min( (size_t)SECTOR512, collector->magic_size );
 
         if (0 == memcmp( mem + buff_ofs, collector->magic_buff, compare_len )){
             // sectors_map是扇区位图
-            sectors_map |= (stream_size_t)1 << (stream_size_t)(buff_ofs >> SECTOR512_SHIFT);
+            sectors_map |= (stream_size_t)1 << (stream_size_t)(buff_ofs >> SECTOR512_SHIFT);  // buff_ofs >> SECTOR512_SHIFT: 第几个扇区
+                                                                                              // 第几个扇区在位图的表示
             collector->collected_size += SECTOR512;
         }
     }
@@ -360,14 +381,14 @@ int _snapdata_collect_bvec( snapdata_collector_t* collector, sector_t ofs, struc
 
     mutex_lock(&collector->locker);
     for (buff_ofs = bv_offset; buff_ofs < (bv_offset + bv_len); buff_ofs += SECTOR512){
-        sector_t buff_ofs_sect = sector_from_size( buff_ofs );  // 这块数据是第几个扇区？
+        sector_t buff_ofs_sect = sector_from_size( buff_ofs );  // 这块数据是第几个扇区
         if ((1ull << buff_ofs_sect) & sectors_map)  // 这里说明上面memcmp() == 0了
         {
             stream_size_t index = ofs + buff_ofs_sect;
 #ifdef SNAPDATA_SPARSE_CHANGES
             res = sparsebitmap_Set(&collector->changes_sparse, index, true);
 #else
-            res = page_array_bit_set(collector->changes, (index - collector->start_index), true);
+            res = page_array_bit_set(collector->changes, (index - collector->start_index), true);  // 将该页的位图存入页组
 #endif
             if (res == SUCCESS){
                 collector->in_bitmap_size += SECTOR512;

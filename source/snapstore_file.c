@@ -7,6 +7,7 @@
 
 /*
  * 根据设备号创建snapstore_file_t
+ * dev_id是快照（备份？）文件所在的设备号
  */
 int snapstore_file_create( dev_t dev_id, snapstore_file_t** pfile )
 {

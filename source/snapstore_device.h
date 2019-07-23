@@ -20,10 +20,10 @@ typedef struct snapstore_device_s
 {
     content_t content;
     shared_resource_t shared;
-    dev_t dev_id;
+    dev_t dev_id;              // 快照存储位置所在的设备号
     snapstore_t* snapstore;
 
-    struct block_device* orig_blk_dev;
+    struct block_device* orig_blk_dev;  // 要打快照的块设备
 
 
     blk_descr_array_t store_block_map; // map block index to read block offset

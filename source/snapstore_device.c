@@ -167,7 +167,7 @@ int snapstore_device_create( dev_t dev_id, snapstore_t* snapstore )
         sector_t sect_cnt = blk_dev_get_capacity(snapstore_device->orig_blk_dev);
         if (sect_cnt & SNAPSTORE_BLK_MASK)
             sect_cnt += SNAPSTORE_BLK_SIZE;
-        blocks_count = (blk_descr_array_index_t)(sect_cnt >> SNAPSTORE_BLK_SHIFT);
+        blocks_count = (blk_descr_array_index_t)(sect_cnt >> SNAPSTORE_BLK_SHIFT);  // 记录这个块设备需要blocks_count个snapstore块
 
         res = blk_descr_array_init(&snapstore_device->store_block_map, 0, blocks_count);
         if (res == SUCCESS)

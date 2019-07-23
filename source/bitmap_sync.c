@@ -7,7 +7,7 @@ int bitmap_sync_init( bitmap_sync_t* bitmap, unsigned int bit_count )
 {
     spin_lock_init( &bitmap->lock );
 
-    bitmap->max_bit_count = roundup( bit_count, 8 * sizeof( unsigned long ) );
+    bitmap->max_bit_count = roundup( bit_count, 8 * sizeof( unsigned long ) );  // 对齐
     bitmap->map = dbg_kzalloc( (size_t)bitmap->max_bit_count >> 3, GFP_KERNEL );
     if (bitmap->map == NULL){
         return -ENOMEM;

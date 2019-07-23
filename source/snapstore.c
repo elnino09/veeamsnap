@@ -96,7 +96,7 @@ int snapstore_create( veeam_uuid_t* id, dev_t snapstore_dev_id, dev_t* dev_id_se
     snapstore->file = NULL;
 
     snapstore->ctrl_pipe = NULL;
-    snapstore->empty_limit = (sector_t)(64 * (1024 * 1024 / SECTOR512)); //by default value
+    snapstore->empty_limit = (sector_t)(64 * (1024 * 1024 / SECTOR512)); //by default value  // 64M对应的扇区数
     snapstore->halffilled = false;
     snapstore->overflowed = false;
 

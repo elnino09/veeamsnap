@@ -19,9 +19,9 @@ typedef struct snapdata_collector_s
 #ifdef SNAPDATA_SPARSE_CHANGES
     sparse_bitmap_t changes_sparse;
 #else
-    page_array_t* changes;
-    stream_size_t start_index;
-    stream_size_t length;
+    page_array_t* changes;      // 位图数据，放在页组中，每个块一个bit
+    stream_size_t start_index;  // 0
+    stream_size_t length;       // 有多少个块
 #endif
     stream_size_t collected_size;
     stream_size_t in_bitmap_size;

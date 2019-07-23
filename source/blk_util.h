@@ -116,6 +116,8 @@ struct bio_set* blk_bioset_create(unsigned int front_pad)
 {
 #ifdef OS_RELEASE_SUSE
 #if LINUX_VERSION_CODE < KERNEL_VERSION( 4, 12, 14 )
+    // pool_size: Number of bio and bio_vecs to cache in the mempool
+    // front_pad: Number of bytes to allocate in front of the returned bio
     return bioset_create(64, front_pad);
 #else
     return bioset_create(64, front_pad, BIOSET_NEED_BVECS | BIOSET_NEED_RESCUER);
