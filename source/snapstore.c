@@ -375,23 +375,24 @@ int snapstore_add_file( veeam_uuid_t* id, page_array_t* ranges, size_t ranges_cn
             //log_tr_range( "range=", range );
 
             while (range_offset < range.cnt){
-                range_t rg;
+                range_t rg;  // 本次要添加到rangelist_t链表里的range_t结构体
 
                 rg.ofs = range.ofs + range_offset;
                 rg.cnt = min_t( sector_t, (range.cnt - range_offset), (SNAPSTORE_BLK_SIZE - current_blk_size) );
 
-                range_offset += rg.cnt;
+                range_offset += rg.cnt;  // 可能一个range_t会被分成两块加入到snapstore->file->pool链表中，range_offset用来记录该range_t已被处理的扇区数
 
                 //log_tr_range( "add rg=", rg );
 
-                res = rangelist_add( &blk_rangelist, &rg );
+                res = rangelist_add( &blk_rangelist, &rg );  // 每一个rangelist_t对象都记录了一个大小为snapstore块大小的数据
                 if (res != SUCCESS){
                     log_err( "Unable to add file to snapstore: cannot add range to rangelist" );
                     break;
                 }
-                current_blk_size += rg.cnt;
+                current_blk_size += rg.cnt;  // current_blk_size 记录了当前rangelist_t链表里记录的扇区数
+                                             // 当扇区数到达了一个snapstore块大小时（默认情况下一个snapstore块有2**5个扇区）再加入snapstore->file->pool链表
 
-                if (current_blk_size == SNAPSTORE_BLK_SIZE){//allocate  block
+                if (current_blk_size == SNAPSTORE_BLK_SIZE){//allocate  block    // 每次操作数据量为一个snapstore块大小
                     res = blk_descr_file_pool_add( &snapstore->file->pool, &blk_rangelist );
                     if (res != SUCCESS){
                         log_err( "Unable to add file to snapstore: cannot initialize new block" );

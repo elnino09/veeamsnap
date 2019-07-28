@@ -210,6 +210,9 @@ bool _snapstore_device_is_block_stored( snapstore_device_t* snapstore_device, bl
     return false;
 }
 
+/*
+ * 创建一个dio节点并加入blk_deferred_request_t->dios链表
+ */
 int snapstore_device_add_request( snapstore_device_t* snapstore_device, blk_descr_array_index_t block_index, blk_deferred_request_t** dio_copy_req )
 {
     int res = SUCCESS;

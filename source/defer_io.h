@@ -7,26 +7,26 @@ typedef struct defer_io_s
 {
     shared_resource_t sharing_header;
 
-    wait_queue_head_t queue_add_event;
+    wait_queue_head_t queue_add_event;  // 往dio_queue里添加bios时会触发此条件
 
-    atomic_t queue_filling_count;
+    atomic_t queue_filling_count;  // dio_queue队列里的bios请求数
     wait_queue_head_t queue_throttle_waiter;
 
     dev_t original_dev_id;                    // 跟踪的原始块设备号
     struct block_device*  original_blk_dev;   // 跟踪的原始块设备
 
-    snapstore_device_t* snapstore_device;
+    snapstore_device_t* snapstore_device;     // 跟踪的原始块设备的snapstore_device_t结构体
 
     struct task_struct* dio_thread;
 
     void*  rangecopy_buff;
     size_t rangecopy_buff_size;
 
-    queue_sl_t dio_queue;
+    queue_sl_t dio_queue;  // 记录原始设备的bio请求链表
 
-    atomic64_t state_bios_received;
-    atomic64_t state_bios_processed;
-    atomic64_t state_sectors_received;
+    atomic64_t state_bios_received;      // 已收到的bios请求数
+    atomic64_t state_bios_processed;     // 
+    atomic64_t state_sectors_received;   // 已收到的bios扇区数
     atomic64_t state_sectors_processed;
     atomic64_t state_sectors_copy_read;
 }defer_io_t;

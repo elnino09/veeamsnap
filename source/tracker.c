@@ -333,6 +333,9 @@ int tracker_remove_all(void )
     return result;
 }
 
+/*
+ * 将cbtmap的write_map中的cbt块对应的byte设置为当前的snap_number
+ */
 int tracker_cbt_bitmap_set( tracker_t* tracker, sector_t sector, sector_t sector_cnt )
 {
     int res = SUCCESS;

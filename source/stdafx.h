@@ -97,7 +97,7 @@ unsigned int get_fixflags(void);
 #define COW_BLOCK_SIZE (1<<COW_BLOCK_SIZE_DEGREE)
 
 #define SNAPSTORE_BLK_SHIFT (sector_t)(COW_BLOCK_SIZE_DEGREE - SECTOR512_SHIFT)  // 一个snapstore块大小有2**SNAPSTORE_BLK_SHIFT个扇区
-#define SNAPSTORE_BLK_SIZE  (sector_t)(1 << SNAPSTORE_BLK_SHIFT)
+#define SNAPSTORE_BLK_SIZE  (sector_t)(1 << SNAPSTORE_BLK_SHIFT)                 // 一个snapstore块大小有SNAPSTORE_BLK_SIZE个扇区
 #define SNAPSTORE_BLK_MASK  (sector_t)(SNAPSTORE_BLK_SIZE-1)
 
 //#define VEEAM_IOCTL_LOGGING

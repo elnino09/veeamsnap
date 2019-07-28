@@ -17,8 +17,9 @@ int blk_descr_array_init( blk_descr_array_t* header, blk_descr_array_index_t fir
     header->first = first;
     header->last = last;
 
-    // 容纳这么多bit需要多少个group？
-    header->group_count = (size_t)((last + 1 - first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);
+    // 每个块用一个bit表示，容纳这么多bit需要多少个group？（每个group可容纳256bit）
+    header->group_count = (size_t)((last + 1 - first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);  // / 256
+
     if ((last + 1 - first) & BLK_DESCR_GROUP_LENGTH_MASK)
         ++(header->group_count);
 

@@ -10,14 +10,14 @@ typedef struct cbt_map_s
 
     spinlock_t locker;
 
-    size_t   sect_in_block_degree;  // 每个块里有2**sect_in_block_degree个扇区
-    size_t   map_size;              // 该块设备有几个块
+    size_t   sect_in_block_degree;  // 每个cbt块里有2**sect_in_block_degree个扇区
+    size_t   map_size;              // 该块设备有几个cbt块
 
-    page_array_t*  read_map;
-    page_array_t*  write_map;
+    page_array_t*  read_map;   // 保存cbt块的快照信息，每个cbt块用1个byte表示，记录的是snapnumber
+    page_array_t*  write_map;  // 保存cbt块的快照信息，每个cbt块用1个byte表示，记录的是snapnumber
 
-    volatile unsigned long snap_number_active;
-    volatile unsigned long snap_number_previous;
+    volatile unsigned long snap_number_active;    // 当前快照顺序号
+    volatile unsigned long snap_number_previous;  // 上一个快照顺序号
     veeam_uuid_t generationId;
 
     volatile bool active;

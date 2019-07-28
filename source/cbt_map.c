@@ -54,7 +54,7 @@ int cbt_map_allocate( cbt_map_t* cbt_map, unsigned int cbt_sect_in_block_degree,
         cbt_map->map_size++;
 
     
-    page_cnt = cbt_map->map_size >> PAGE_SHIFT;  // 保存这些cbt块需要几个页
+    page_cnt = cbt_map->map_size >> PAGE_SHIFT;  // 保存这些cbt块需要几个页，每个页能保存 2**PAGE_SHIFT 个cbt块，
     if (cbt_map->map_size & (PAGE_SIZE - 1))
         ++page_cnt;
 
@@ -133,7 +133,7 @@ void cbt_map_destroy( cbt_map_t* cbt_map )
 }
 
 /*
- * 超过256个？？就重新开始？
+ * 超过256个？？就重新开始？因为在cbtmap里使用byte来保存snap_number_active，byte表示范围为0-255
  */
 void cbt_map_switch( cbt_map_t* cbt_map )
 {
@@ -157,6 +157,9 @@ void cbt_map_switch( cbt_map_t* cbt_map )
     _cbt_map_unlock( cbt_map );
 }
 
+/*
+ * 将页组中cbtmap块对应的byte设置为当前的snap_number
+ */
 int _cbt_map_set( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector_cnt, byte_t snap_number, page_array_t* map )
 {
     int res = SUCCESS;
@@ -185,6 +188,9 @@ int _cbt_map_set( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector_cnt
     return res;
 }
 
+/*
+ * 将cbtmap的write_map中的cbt块对应的byte设置为当前的snap_number
+ */
 int cbt_map_set( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector_cnt )
 {
     int res = SUCCESS;

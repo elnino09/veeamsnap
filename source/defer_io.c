@@ -57,6 +57,9 @@ void _defer_io_finish( defer_io_t* defer_io, queue_sl_t* queue_in_progress )
     }
 }
 
+/*
+ * 从defer_io->dio_queue链表中取出第一个节点并放到queue_in_process中去
+ */
 int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, blk_deferred_request_t** dio_copy_req )
 {
     int res = SUCCESS;
@@ -64,12 +67,13 @@ int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, 
     sector_t dios_sectors_count = 0;
 
     //fill copy_request set
+    // dios数满250或dios扇区数>(10M/512)
     while (!queue_sl_empty( defer_io->dio_queue ) && (dios_count < DEFER_IO_DIO_REQUEST_LENGTH) && (dios_sectors_count < DEFER_IO_DIO_REQUEST_SECTORS_COUNT)){
 
-        defer_io_original_request_t* dio_orig_req = (defer_io_original_request_t*)queue_sl_get_first( &defer_io->dio_queue );
-        atomic_dec( &defer_io->queue_filling_count );
+        defer_io_original_request_t* dio_orig_req = (defer_io_original_request_t*)queue_sl_get_first( &defer_io->dio_queue );  // 从dio_queue取出第一个dio
+        atomic_dec( &defer_io->queue_filling_count );  // dio_queue里的dio数目-1
 
-        queue_sl_push_back( queue_in_process, &dio_orig_req->content );
+        queue_sl_push_back( queue_in_process, &dio_orig_req->content );  // dio放入queue_in_process链表
 
         if (!kthread_should_stop( ) && !snapstore_device_is_corrupted( defer_io->snapstore_device )){
             if (bio_data_dir( dio_orig_req->bio ) && bio_has_data( dio_orig_req->bio )){
@@ -86,6 +90,9 @@ int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, 
     return res;
 }
 
+/*
+ * 从defer_io->dio_queue队列中取出数据处理
+ */
 int defer_io_work_thread( void* p )
 {
 
@@ -229,7 +236,7 @@ int defer_io_create( dev_t dev_id, struct block_device* blk_dev, defer_io_t** pp
         defer_io->original_dev_id = dev_id;
         defer_io->original_blk_dev = blk_dev;
 
-        // 先根据设备号找对对应的snapstore_device，并赋值给defer_io->snapstore_device
+        // 先根据设备号找到对应的snapstore_device，并赋值给defer_io->snapstore_device
         {
             snapstore_device_t* snapstore_device = snapstore_device_find_by_dev_id( defer_io->original_dev_id );
             if (NULL == snapstore_device){
@@ -300,6 +307,9 @@ int defer_io_stop( defer_io_t* defer_io )
     return res;
 }
 
+/*
+ * 将bios放到defer_io->dio_queue链表里去
+ */
 int defer_io_redirect_bio( defer_io_t* defer_io, struct bio *bio, sector_t sectStart, sector_t sectCount, struct request_queue *q, make_request_fn* TargetMakeRequest_fn, void* tracker )
 {
     defer_io_original_request_t* dio_orig_req;

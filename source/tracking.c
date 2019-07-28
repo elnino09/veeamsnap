@@ -43,6 +43,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 #else
         if ( op_is_write( bio_op( bio ) ) ){// only write request processed
 #endif
+            log_tr("It is a write bio");
             if (SUCCESS == snapdata_collect_Find( q, bio, &collector ))
                 snapdata_collect_Process( collector, bio );
         }
@@ -56,12 +57,14 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
             sectStart = (bi_sector - blk_dev_get_start_sect( tracker->target_dev ));
             sectCount = sector_from_size( bi_size );
+            log_tr_format( "bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
 
             if ((bio->bi_end_io != blk_direct_bio_endio) &&
                 (bio->bi_end_io != blk_redirect_bio_endio) &&
                 (bio->bi_end_io != blk_deferred_bio_endio))
             {
                 bool do_lowlevel = true;
+                log_tr("It is not blk_xxx__bio_endio");
 
                 if ((sectStart + sectCount) > blk_dev_get_capacity( tracker->target_dev ))
                     sectCount -= ((sectStart + sectCount) - blk_dev_get_capacity( tracker->target_dev ));
@@ -72,6 +75,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
                 if (atomic_read( &tracker->is_captured ))
                 {// do copy-on-write
+                    log_tr( "tracker->is_captured=yes" );
                     int res = defer_io_redirect_bio( tracker->defer_io, bio, sectStart, sectCount, q, tracker_queue->original_make_request_fn, tracker );
                     if (SUCCESS == res)
                         do_lowlevel = false;
@@ -82,10 +86,12 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
                 if (do_lowlevel){
                     bool cbt_locked = false;
+                    log_tr("do_lowlevel");
 
                     if (tracker && bio_data_dir( bio ) && bio_has_data( bio )){
                         cbt_locked = tracker_cbt_bitmap_lock( tracker );
                         if (cbt_locked)
+                            log_tr("tracker_cbt_bitmap_set");
                             tracker_cbt_bitmap_set( tracker, sectStart, sectCount );
                         //tracker_CbtBitmapUnlock( tracker );
                     }
@@ -98,7 +104,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
             else
             {
                 bool cbt_locked = false;
-
+                log_tr("It is a blk_xxx__bio_endio");
                 if (tracker && bio_data_dir( bio ) && bio_has_data( bio )){
                     cbt_locked = tracker_cbt_bitmap_lock( tracker );
                     if (cbt_locked)
@@ -110,6 +116,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
             }
         }else{
             //call low level block device
+            log_tr("No found tracker");
             tracker_queue->original_make_request_fn(q, bio);
         }
 

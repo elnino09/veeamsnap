@@ -46,13 +46,13 @@ typedef struct trace_page_s
 typedef struct snapimage_s{
     content_t content;
 
-    sector_t capacity;
-    dev_t original_dev;
+    sector_t capacity;      // 要创建快照镜像的设备的容量，单位：扇区
+    dev_t original_dev;     //  要创建快照镜像的设备的设备号
 
     defer_io_t* defer_io;
     cbt_map_t* cbt_map;
 
-    dev_t image_dev;
+    dev_t image_dev;       // 快照镜像设备的设备号
 
     spinlock_t queue_lock;        // For exclusive access to our request queue
     struct request_queue* queue;
@@ -1071,6 +1071,9 @@ int snapimage_destroy_for( dev_t* p_dev, int count )
     return res;
 }
 
+/*
+ * 创建快照镜像
+ */
 int snapimage_create_for( dev_t* p_dev, int count )
 {
     int res = SUCCESS;

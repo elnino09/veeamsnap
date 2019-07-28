@@ -9,24 +9,23 @@
 typedef struct tracker_s
 {
     content_sl_t content;
-    dev_t original_dev_id;
+    dev_t original_dev_id;                    // 跟踪的设备的设备号
 
-    struct block_device* target_dev;
-    tracker_queue_t* tracker_queue;
+    struct block_device* target_dev;          // 跟踪的设备的内核块设备结构
+    tracker_queue_t* tracker_queue;           // 
 
     cbt_map_t* cbt_map;
 
-    atomic_t is_captured;
+    atomic_t is_captured;                     // 创建defer_io_t对象并创建dio线程运行后，该成员被置为true
 
     bool is_unfreezable; // when device have not filesystem and can not be freeze
     struct rw_semaphore unfreezable_lock; //locking io processing for unfreezable devices
 
     defer_io_t* defer_io;
-
     volatile unsigned long long snapshot_id;          // current snapshot for this device
 
-    sector_t device_capacity;
-    unsigned int cbt_block_size_degree;
+    sector_t device_capacity;                 // 跟踪的设备的容量，单位：扇区
+    unsigned int cbt_block_size_degree;       // 每个cbt块的字节大小相对2的幂，即每个cbt块大小为2**cbt_block_size_degree个字节
 }tracker_t;
 
 int tracker_init( void );
