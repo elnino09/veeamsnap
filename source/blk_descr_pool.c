@@ -139,6 +139,9 @@ static blk_descr_unify_t* __blk_descr_pool_at( blk_descr_pool_t* pool, size_t bl
     return (blk_descr_unify_t*)bkl_descr;
 }
 
+/*
+ * 标记pool里的第blk_descr_size元素为take
+ */
 blk_descr_unify_t* blk_descr_pool_take( blk_descr_pool_t* pool, size_t blk_descr_size )
 {
     blk_descr_unify_t* result = NULL;

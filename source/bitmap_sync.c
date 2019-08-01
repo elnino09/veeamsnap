@@ -3,11 +3,14 @@
 
 #define SECTION "bitmap_sync"
 
+/*
+ * bit_count = 2048 (SNAPIMAGE_MAX_DEVICES)
+ */
 int bitmap_sync_init( bitmap_sync_t* bitmap, unsigned int bit_count )
 {
     spin_lock_init( &bitmap->lock );
 
-    bitmap->max_bit_count = roundup( bit_count, 8 * sizeof( unsigned long ) );  // 对齐
+    bitmap->max_bit_count = roundup( bit_count, 8 * sizeof( unsigned long ) );  // 按sizeof( unsigned long )对齐
     bitmap->map = dbg_kzalloc( (size_t)bitmap->max_bit_count >> 3, GFP_KERNEL );
     if (bitmap->map == NULL){
         return -ENOMEM;
@@ -60,11 +63,15 @@ void bitmap_sync_clear( bitmap_sync_t* bitmap, unsigned int index )
     spin_unlock( &bitmap->lock );
 }
 
+/*
+ * 从minors位图中找到一个bit并设置为1，这个bit的index就是次设备号
+ */
 int bitmap_sync_find_clear_and_set( bitmap_sync_t* bitmap )
 {
     int index = 0;
     spin_lock( &bitmap->lock );
     do{
+        // bitmap_find_free_region 见https://www.fsl.cs.sunysb.edu/kernel-api/re220.html
         index = bitmap_find_free_region( bitmap->map, bitmap->max_bit_count, 0 );
     } while (false);
     spin_unlock( &bitmap->lock );

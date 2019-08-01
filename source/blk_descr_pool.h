@@ -12,6 +12,10 @@ typedef struct blk_descr_pool_s
     volatile size_t take_cnt; // take count of blk_descr_mem_t;
 }blk_descr_pool_t;
 
+/*
+ * dbg_kmalloc_huge( _POOL_EL_MAX_SIZE
+ * 每个pool_el_t有8个页的空间
+ */
 typedef struct  pool_el_s
 {
     struct list_head link;

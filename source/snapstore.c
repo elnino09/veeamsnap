@@ -372,7 +372,7 @@ int snapstore_add_file( veeam_uuid_t* id, page_array_t* ranges, size_t ranges_cn
             range.ofs = sector_from_streamsize( ioctl_range->left );
             range.cnt = sector_from_streamsize( ioctl_range->right ) - range.ofs;
 
-            //log_tr_range( "range=", range );
+            log_tr_range( "range=", range );
 
             while (range_offset < range.cnt){
                 range_t rg;  // 本次要添加到rangelist_t链表里的range_t结构体
@@ -382,7 +382,7 @@ int snapstore_add_file( veeam_uuid_t* id, page_array_t* ranges, size_t ranges_cn
 
                 range_offset += rg.cnt;  // 可能一个range_t会被分成两块加入到snapstore->file->pool链表中，range_offset用来记录该range_t已被处理的扇区数
 
-                //log_tr_range( "add rg=", rg );
+                log_tr_range( "add rg=", rg );
 
                 res = rangelist_add( &blk_rangelist, &rg );  // 每一个rangelist_t对象都记录了一个大小为snapstore块大小的数据
                 if (res != SUCCESS){
@@ -478,7 +478,7 @@ int snapstore_add_multidev(veeam_uuid_t* id, dev_t dev_id, page_array_t* ranges,
 
                 range_offset += rg.cnt;
 
-                //log_tr_range( "add rg=", rg );
+                log_tr_range( "add rg=", rg );
                 extension = (void*)snapstore_multidev_get_device( snapstore->multidev, dev_id );
                 if (NULL == extension){
                     log_err_format( "Cannot find or open device [%d:%d] for multidevice snapstore", MAJOR( dev_id ), MINOR( dev_id ) );
@@ -547,6 +547,9 @@ void snapstore_order_border( range_t* in, range_t* out )
         out->cnt += (SNAPSTORE_BLK_SIZE - unorder.cnt);
 }
 
+/*
+ * 在snapstore里找一个空块
+ */
 blk_descr_unify_t* snapstore_get_empty_block( snapstore_t* snapstore )
 {
     blk_descr_unify_t* result = NULL;

@@ -160,6 +160,9 @@ void blk_deferred_bio_free( struct bio* bio )
 }
 #endif
 
+/*
+ * 分配一个bio结构体
+ */
 struct bio* _blk_deferred_bio_alloc( int nr_iovecs )
 {
     struct bio* new_bio = bio_alloc_bioset( GFP_NOIO, nr_iovecs, BlkDeferredBioset );
@@ -484,6 +487,9 @@ int blk_deferred_request_wait( blk_deferred_request_t* dio_req )
     return dio_req->result;
 }
 
+/*
+ * 从原始块设备上读出对应扇区的内容
+ */
 int blk_deferred_request_read_original( struct block_device* original_blk_dev, blk_deferred_request_t* dio_copy_req )
 {
     int res = -ENODATA;
@@ -526,6 +532,9 @@ int blk_deferred_request_read_original( struct block_device* original_blk_dev, b
     return res;
 }
 
+/*
+ * 将dio_copy_req里的dio->buff数据写入到snapstore_file
+ */
 int blk_deferred_request_store_file( struct block_device* blk_dev, blk_deferred_request_t* dio_copy_req )
 {
     int res = SUCCESS;

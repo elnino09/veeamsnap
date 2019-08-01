@@ -4,6 +4,9 @@
 #include "blk_descr_unify.h"
 #include "blk_descr_pool.h"
 
+/*
+ * rangelist链表里放的是扇区位置链表，每一个blk_descr_file_t对象表示的扇区大小不大于一个snapstore块大小
+ */
 typedef struct blk_descr_file_s
 {
     blk_descr_unify_t unify;

@@ -28,7 +28,7 @@ typedef struct snapstore_s
     sector_t empty_limit;
 
     volatile bool halffilled;
-    volatile bool overflowed;
+    volatile bool overflowed;  // file->pool里的take数量超过总数
 }snapstore_t;
 
 

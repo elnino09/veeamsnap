@@ -197,6 +197,9 @@ int snapstore_device_create( dev_t dev_id, snapstore_t* snapstore )
     return SUCCESS;
 }
 
+/*
+ * 判断store_block_map中第block_index个块是否已有数据，
+ */
 bool _snapstore_device_is_block_stored( snapstore_device_t* snapstore_device, blk_descr_array_index_t block_index )
 {
     blk_descr_array_el_t blk_descr;
@@ -211,6 +214,7 @@ bool _snapstore_device_is_block_stored( snapstore_device_t* snapstore_device, bl
 }
 
 /*
+ * 看函数名是往snapstore_device设备里加入一个io请求，
  * 创建一个dio节点并加入blk_deferred_request_t->dios链表
  */
 int snapstore_device_add_request( snapstore_device_t* snapstore_device, blk_descr_array_index_t block_index, blk_deferred_request_t** dio_copy_req )
@@ -220,12 +224,14 @@ int snapstore_device_add_request( snapstore_device_t* snapstore_device, blk_desc
     blk_deferred_t* dio = NULL;
     bool req_new = false;
 
+    // 从snapstore_device->snapstore->file->pool链表中找一个空块
     blk_descr = snapstore_get_empty_block( snapstore_device->snapstore );
     if (blk_descr == NULL){
         log_err( "Unable to add block to defer IO request: failed to allocate next block" );
         return -ENODATA;
     }
 
+    // 将snapstore_device->store_block_map对应的位图设置，并设置blk_descr_array_group_t->values的对应元素指向blk_descr
     res = blk_descr_array_set( &snapstore_device->store_block_map, block_index, blk_descr );
     if (res != SUCCESS){
         //blk_descr_write_unlock( blk_descr );
@@ -275,6 +281,7 @@ int snapstore_device_prepare_requests( snapstore_device_t* snapstore_device, ran
 {
     int res = SUCCESS;
     blk_descr_array_index_t inx = 0;
+    // copy_range 里记录的单位是扇区，需要转化为snapstore块大小
     blk_descr_array_index_t first = (blk_descr_array_index_t)(copy_range->ofs >> SNAPSTORE_BLK_SHIFT);
     blk_descr_array_index_t last = (blk_descr_array_index_t)((copy_range->ofs + copy_range->cnt - 1) >> SNAPSTORE_BLK_SHIFT);
 
@@ -329,6 +336,7 @@ int snapstore_device_read( snapstore_device_t* snapstore_device, blk_redirect_bi
     if (snapstore_device_is_corrupted( snapstore_device ))
         return -ENODATA;
 
+    // 将bio里的字节表示转为扇区表示
     rq_range.cnt = sector_from_size( bio_bi_size( rq_endio->bio ) );
     rq_range.ofs = bio_bi_sector( rq_endio->bio );
 
@@ -339,6 +347,7 @@ int snapstore_device_read( snapstore_device_t* snapstore_device, blk_redirect_bi
         return SUCCESS;
     }
 
+    // 将扇区表示转为snapstore块表示
     block_index_first = (blk_descr_array_index_t)(rq_range.ofs >> SNAPSTORE_BLK_SHIFT);
     block_index_last = (blk_descr_array_index_t)((rq_range.ofs + rq_range.cnt - 1) >> SNAPSTORE_BLK_SHIFT);
 

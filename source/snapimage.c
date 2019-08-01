@@ -72,10 +72,10 @@ typedef struct snapimage_s{
     atomic64_t state_inprocess;
     atomic64_t state_processed;
 
-    volatile sector_t last_read_sector;
-    volatile sector_t last_read_size;
-    volatile sector_t last_write_sector;
-    volatile sector_t last_write_size;
+    volatile sector_t last_read_sector;   // 最后一个读请求的起始扇区
+    volatile sector_t last_read_size;     // 最后一个读请求的大小
+    volatile sector_t last_write_sector;  // 最后一个写请求的起始扇区
+    volatile sector_t last_write_size;    // 最后一个写请求的大小
 
     struct mutex open_locker;
     struct block_device* open_bdev;
@@ -241,11 +241,14 @@ void image_trace_done(snapimage_t* image)
 
 int _snapimage_destroy( snapimage_t* image );
 
+/*
+ * Snapshot image 打开函数
+ */
 int _snapimage_open( struct block_device *bdev, fmode_t mode )
 {
     int res = SUCCESS;
 
-    //log_tr_format( "Snapshot image open device [%d:%d]. Block device object 0x%p", MAJOR( bdev->bd_dev ), MINOR( bdev->bd_dev ), bdev );
+    log_tr_format( "Snapshot image open device [%d:%d]. Block device object 0x%p", MAJOR( bdev->bd_dev ), MINOR( bdev->bd_dev ), bdev );
     if (bdev->bd_disk == NULL){
         log_err_dev_t( "Unable to open snapshot image: bd_disk is NULL. Device ", bdev->bd_dev );
         log_err_p( "Block device object ", bdev );
@@ -274,7 +277,10 @@ int _snapimage_open( struct block_device *bdev, fmode_t mode )
     return res;
 }
 
-
+/*
+ * 获取snapimage的驱动信息
+ * 该函数根据驱动器的几何信息填充一个hd_geometry结构体，hd_geometry结构体包含磁头，扇区，柱面等信息。
+ */
 int _snapimage_getgeo( struct block_device* bdev, struct hd_geometry * geo )
 {
     int res = SUCCESS;
@@ -331,7 +337,7 @@ void _snapimage_close( struct gendisk *disk, fmode_t mode )
         do{
             snapimage_t* image = disk->private_data;
 
-            //log_tr_format( "Snapshot image close device [%d:%d]. Block device object 0x%p", MAJOR( image->open_bdev->bd_dev ), MINOR( image->open_bdev->bd_dev ), image->open_bdev );
+            log_tr_format( "Snapshot image close device [%d:%d]. Block device object 0x%p", MAJOR( image->open_bdev->bd_dev ), MINOR( image->open_bdev->bd_dev ), image->open_bdev );
 
             mutex_lock( &image->open_locker );
             {
@@ -460,6 +466,10 @@ static struct block_device_operations g_snapimage_ops = {
     //.swap_slot_free_notify = NULL
 };
 
+/*
+ * 对snapimage的读
+ * 其实就是对snapstore_device的读
+ */
 int _snapimage_request_read( defer_io_t* p_defer_io, blk_redirect_bio_endio_t* rq_endio )
 {
     int res = -ENODATA;
@@ -512,6 +522,9 @@ int _snapimage_request_write( snapimage_t * image, blk_redirect_bio_endio_t* rq_
     return res;
 }
 
+/*
+ * 从image->rq_proc_queue里取出第一个节点处理
+ */
 void _snapimage_processing( snapimage_t * image )
 {
     int res = SUCCESS;
@@ -628,12 +641,27 @@ void _snapimage_bio_complete_cb( void* complete_param, struct bio* bio, int err 
 
 int _snapimage_throttling( defer_io_t* defer_io )
 {
+    /*
+     * 读一下wait_event_interruptible()的源码，不难发现这个函数先将 
+     * 当前进程的状态设置成TASK_INTERRUPTIBLE，然后调用schedule()， 
+     * 而schedule()会将位于TASK_INTERRUPTIBLE状态的当前进程从runqueue 
+     * 队列中删除。从runqueue队列中删除的结果是，当前这个进程将不再参 
+     * 与调度，除非通过其他函数将这个进程重新放入这个runqueue队列中， 
+     * 这就是wake_up()的作用了
+
+     * 条件condition为真时调用这个函数将直接返回0，而当前进程不会被 wait_event_interruptible和从runqueue队列中删除。
+     */
     //wait_event_interruptible_timeout( defer_io->queue_throttle_waiter, (0 == atomic_read( &defer_io->queue_filling_count )), VEEAMIMAGE_THROTTLE_TIMEOUT );
     return wait_event_interruptible( defer_io->queue_throttle_waiter, queue_sl_empty( defer_io->dio_queue ) );
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION( 4, 4, 0 )
 
+
+/*
+ * 把bio请求插入到snapimage的请求队列的函数
+ * 主要功能：构造一个redirect_bio节点并加到image->rq_proc_queue链表里去
+ */
 #ifdef HAVE_MAKE_REQUEST_INT
 int _snapimage_make_request( struct request_queue *q, struct bio *bio )
 #else
@@ -701,6 +729,7 @@ blk_qc_t _snapimage_make_request(struct request_queue *q, struct bio *bio)
             }
         }
 
+        // rq_proc_queue->content_size = sizeof( blk_redirect_bio_endio_t )
         rq_endio = (blk_redirect_bio_endio_t*)queue_content_sl_new_opt( &image->rq_proc_queue, GFP_NOIO );
         if (NULL == rq_endio){
 			log_err("Unable to make snapshot image request: failed to allocate redirect bio structure");
@@ -790,6 +819,7 @@ int snapimage_create( dev_t original_dev )
     }
 
     do{
+        // 次设备号
         minor = bitmap_sync_find_clear_and_set( &g_snapimage_minors );
         if (minor < SUCCESS){
             log_err_d( "Failed to allocate minor for snapshot image device. errno=", 0-minor );
@@ -836,7 +866,7 @@ int snapimage_create( dev_t original_dev )
         }
         image->queue->queuedata = image;
 
-        blk_queue_make_request( image->queue, _snapimage_make_request );
+        blk_queue_make_request( image->queue, _snapimage_make_request );  // 把bio请求插入到请求队列的函数
         blk_queue_max_segment_size( image->queue, 1024 * PAGE_SIZE );
 
         {
@@ -873,12 +903,12 @@ int snapimage_create( dev_t original_dev )
 
         disk->major = g_snapimage_major;
         disk->minors = 1;    // one disk have only one partition.
-        disk->first_minor = minor;
+        disk->first_minor = minor;  // 第一个次设备号，因为设置了不分区，所以次设备号就是minor
 
         disk->private_data = image;
 
-        disk->fops = &g_snapimage_ops;
-        disk->queue = image->queue;
+        disk->fops = &g_snapimage_ops;  // 块设备操作函数
+        disk->queue = image->queue;     // 请求队列，用于管理该设备IO请求队列的指针*
 
         set_capacity( disk, image->capacity );
         log_tr_format( "Snapshot image device capacity %lld bytes", sector_to_streamsize(image->capacity) );

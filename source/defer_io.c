@@ -58,7 +58,7 @@ void _defer_io_finish( defer_io_t* defer_io, queue_sl_t* queue_in_progress )
 }
 
 /*
- * 从defer_io->dio_queue链表中取出第一个节点并放到queue_in_process中去
+ * 从defer_io->dio_queue链表中取出第一个节点并放到queue_in_process和dio_copy_req中去
  */
 int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, blk_deferred_request_t** dio_copy_req )
 {
@@ -112,6 +112,7 @@ int defer_io_work_thread( void* p )
     while (!kthread_should_stop( ) || !queue_sl_empty( defer_io->dio_queue )){
 
         if (queue_sl_empty( defer_io->dio_queue )){
+            // 如果队列为空，那么等待添加dio事件的到来或直到超时
             int res = wait_event_interruptible_timeout( defer_io->queue_add_event, (!queue_sl_empty( defer_io->dio_queue )), VEEAMIMAGE_THROTTLE_TIMEOUT );
             if (-ERESTARTSYS == res){
                 log_err( "Signal received in defer IO thread. Waiting for completion with code ERESTARTSYS" );
