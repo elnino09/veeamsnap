@@ -1,0 +1,154 @@
+[04.08.2019 11:25:04-036982] <19700> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:04-037024] <19700> tracking   | 1 devices found under tracking
+[04.08.2019 11:25:04-037047] <19700> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:04-037063] <19700> tracking   | 1 devices found under tracking
+[04.08.2019 11:25:04-041132] <19700> tracking   | Adding device [8:17] under tracking
+[04.08.2019 11:25:04-041159] <19700> tracking   | Device [8:17] is already tracked
+[04.08.2019 11:25:04-041191] <19700> tracking   | Adding device [8:18] under tracking
+[04.08.2019 11:25:04-041283] <19700> tracker    | Create tracker for device [8:18]. Start 0x5f800 sector, capacity 0x2f800 sectors
+[04.08.2019 11:25:04-041306] <19700> cbt_map    | CBT map create
+[04.08.2019 11:25:04-041859] <19700> blk        | Device [8:18] was frozen
+[04.08.2019 11:25:04-041883] <19700> tracker    | Tracker queue already exists
+[04.08.2019 11:25:04-041979] <19700> blk        | Device [8:18] was unfrozen
+[04.08.2019 11:25:04-106243] <19700> snapstore  | Create snapstore with id [25f6689c-371c-44c4-bbaa701547188856]
+[04.08.2019 11:25:04-106296] <19700> snapstore  | Single device file snapstore was created on device [253:0]
+[04.08.2019 11:25:04-106302] <19700> snapstore  | snapstore device logical block size 512
+[04.08.2019 11:25:04-106303] <19700> snapstore  | snapstore device physical block size 512
+[04.08.2019 11:25:04-106328] <19700> snapstore  | Create snapstore_device for[8:17]
+[04.08.2019 11:25:04-106338] <19700> blk_descr  | Block description array takes up 1 pages
+[04.08.2019 11:25:04-106338] <19700> snapstore  | Create snapstore_device for[8:18]
+[04.08.2019 11:25:04-106340] <19700> blk_descr  | Block description array takes up 1 pages
+[04.08.2019 11:25:04-106416] <19700> snapstore  | Snapstore add 1 ranges
+[04.08.2019 11:25:04-106433] <19700> snapstore  | range= ofs=0x4a38dc0, cnt=0x200000
+[04.08.2019 11:25:04-106434] <19700> snapstore  | add rg= ofs=0x4a38dc0, cnt=0x20
+[04.08.2019 11:25:04-106436] <19700> snapstore  | add rg= ofs=0x4a38de0, cnt=0x20
+[04.08.2019 11:25:04-106436] <19700> snapstore  | add rg= ofs=0x4a38e00, cnt=0x20
+[04.08.2019 11:25:04-106437] <19700> snapstore  | add rg= ofs=0x4a38e20, cnt=0x20
+[04.08.2019 11:25:04-106437] <19700> snapstore  | add rg= ofs=0x4a38e40, cnt=0x20
+[04.08.2019 11:25:04-106438] <19700> snapstore  | add rg= ofs=0x4a38e60, cnt=0x20
+[04.08.2019 11:25:04-106439] <19700> snapstore  | add rg= ofs=0x4a38e80, cnt=0x20
+[04.08.2019 11:25:04-106439] <19700> snapstore  | add rg= ofs=0x4a38ea0, cnt=0x20
+[04.08.2019 11:25:04-106440] <19700> snapstore  | add rg= ofs=0x4a38ec0, cnt=0x20
+[04.08.2019 11:25:04-106440] <19700> snapstore  | add rg= ofs=0x4a38ee0, cnt=0x20
+...
+
+
+
+
+
+[04.08.2019 11:25:04-174971] <19700> snapshot   | Create snapshot for devices:
+[04.08.2019 11:25:04-174973] <19700> snapshot   | 	8:17
+[04.08.2019 11:25:04-174973] <19700> snapshot   | 	8:18
+[04.08.2019 11:25:04-174975] <19700> tracking   | Adding device [8:17] under tracking
+[04.08.2019 11:25:04-174976] <19700> tracking   | Device [8:17] is already tracked
+[04.08.2019 11:25:04-174978] <19700> tracking   | Adding device [8:18] under tracking
+[04.08.2019 11:25:04-174978] <19700> tracking   | Device [8:18] is already tracked
+[04.08.2019 11:25:04-175343] <19700> blk        | Device [8:17] was frozen
+[04.08.2019 11:25:04-175344] <19700> defer_io   | Defer IO processor was created for device [8:17]
+[04.08.2019 11:25:04-175363] <19700> defer_io   | Defer IO processor was created
+[04.08.2019 11:25:04-175363] <19700> cbt_map    | CBT map switch
+[04.08.2019 11:25:04-175365] <19700> tracker    | Snapshot captured for device [8:17]. New snap number 3
+[04.08.2019 11:25:04-175371] <19712> defer_io   | Defer IO thread for original device [8:17] started
+[04.08.2019 11:25:04-175864] <19700> blk        | Device [8:17] was unfrozen
+[04.08.2019 11:25:04-176031] <19700> blk        | Device [8:18] was frozen
+[04.08.2019 11:25:04-176032] <19700> defer_io   | Defer IO processor was created for device [8:18]
+[04.08.2019 11:25:04-176046] <19700> defer_io   | Defer IO processor was created
+[04.08.2019 11:25:04-176046] <19700> cbt_map    | CBT map switch
+[04.08.2019 11:25:04-176048] <19700> tracker    | Snapshot captured for device [8:18]. New snap number 2
+[04.08.2019 11:25:04-176052] <19713> defer_io   | Defer IO thread for original device [8:18] started
+[04.08.2019 11:25:04-176504] <19700> blk        | Device [8:18] was unfrozen
+[04.08.2019 11:25:04-176506] <19700> snapimage  | Create snapshot image for device [8:17]
+[04.08.2019 11:25:04-176514] <19700> snapimage  | Snapshot image device id [252:0]
+[04.08.2019 11:25:04-176609] <19700> snapimage  | Snapshot image physical block size 512
+[04.08.2019 11:25:04-176610] <19700> snapimage  | Snapshot image logical block size 512
+[04.08.2019 11:25:04-176612] <19700> snapimage  | Snapshot image disk name [veeamimage0]
+[04.08.2019 11:25:04-176613] <19700> snapimage  | Snapshot image device capacity 199229440 bytes
+[04.08.2019 11:25:04-177675] <19700> snapimage  | Create snapshot image for device [8:18]
+[04.08.2019 11:25:04-177680] <19700> snapimage  | Snapshot image device id [252:1]
+[04.08.2019 11:25:04-177720] <19700> snapimage  | Snapshot image physical block size 512
+[04.08.2019 11:25:04-177720] <19700> snapimage  | Snapshot image logical block size 512
+[04.08.2019 11:25:04-177722] <19700> snapimage  | Snapshot image disk name [veeamimage1]
+[04.08.2019 11:25:04-177723] <19700> snapimage  | Snapshot image device capacity 99614720 bytes
+[04.08.2019 11:25:04-177857] <19714> snapimage  | Snapshot image thread for device [252:0] start
+[04.08.2019 11:25:04-184736] <19700> snapshot   | Snapshot [0xffff9d355f058640] was created
+[04.08.2019 11:25:04-184885] <19700> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:04-184887] <19700> tracking   | 2 devices found under tracking
+[04.08.2019 11:25:04-184897] <19700> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:04-184899] <19700> tracking   | 2 devices found under tracking
+[04.08.2019 11:25:04-185638] <19715> snapimage  | Snapshot image thread for device [252:1] start
+[04.08.2019 11:25:04-190147] <19719> snapimage  | Snapshot image open device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-196550] <19717> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-212676] <19719> snapimage  | Snapshot image close device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-225146] <5086> snapimage  | Snapshot image open device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-225152] <5086> snapimage  | Snapshot image close device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-227312] <19717> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-244740] <5086> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-244743] <5086> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-831195] <19668> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-850272] <19668> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-850433] <19668> snapimage  | Snapshot image open device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-867669] <19668> snapimage  | Snapshot image close device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-879587] <19668> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-890961] <19668> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-891029] <19668> snapimage  | Snapshot image open device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-898597] <19668> snapimage  | Snapshot image close device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:04-931152] <19780> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-937517] <19780> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-937684] <19780> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-942515] <5086> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:04-942522] <5086> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:05-074177] <5086> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:05-074186] <5086> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:05-077361] <19783> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:05-231658] <19785> snapimage  | Snapshot image open device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:05-231884] <19785> snapimage  | Snapshot image open device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:05-236425] <19785> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:05-236466] <19785> tracking   | 2 devices found under tracking
+[04.08.2019 11:25:05-236492] <19785> ctrl_fops  | Collecting tracking devices:
+[04.08.2019 11:25:05-236493] <19785> tracking   | 2 devices found under tracking
+[04.08.2019 11:25:06-542265] <19785> snapimage  | Snapshot image close device [252:1]. Block device object 0xffff9d35755add40
+[04.08.2019 11:25:06-542429] <19785> snapimage  | Snapshot image close device [252:0]. Block device object 0xffff9d357e025380
+[04.08.2019 11:25:09-254660] <19662> snapshot   | Destroy snapshot [0xffff9d355f058640]
+[04.08.2019 11:25:09-254670] <19662> snapimage  | Snapshot image processing stop for original device [8:17]
+[04.08.2019 11:25:09-254671] <19662> snapimage  | Snapshot image request processing stop
+[04.08.2019 11:25:09-254673] <19662> snapimage  | Snapshot image thread stop
+[04.08.2019 11:25:09-254686] <19714> snapimage  | Snapshot image disk delete
+[04.08.2019 11:25:09-255297] <19714> snapimage  | Snapshot image thread for device [252:0] complete
+[04.08.2019 11:25:09-256218] <19662> snapimage  | Snapshot image processing stop for original device [8:18]
+[04.08.2019 11:25:09-256221] <19662> snapimage  | Snapshot image request processing stop
+[04.08.2019 11:25:09-256223] <19662> snapimage  | Snapshot image thread stop
+[04.08.2019 11:25:09-257373] <19715> snapimage  | Snapshot image disk delete
+[04.08.2019 11:25:09-258699] <19715> snapimage  | Snapshot image thread for device [252:1] complete
+[04.08.2019 11:25:09-265852] <19662> tracker    | Release snapshot [0xffff9d355f058640]
+[04.08.2019 11:25:09-272761] <19662> blk        | Device [8:17] was frozen
+[04.08.2019 11:25:09-273166] <19662> blk        | Device [8:17] was unfrozen
+[04.08.2019 11:25:09-273168] <19662> defer_io   | Defer IO thread for the device stopped [8:17]
+[04.08.2019 11:25:10-269839] <19712> defer_io   | Defer IO thread for original device [8:17] completed
+[04.08.2019 11:25:10-270343] <19662> blk        | Device [8:18] was frozen
+[04.08.2019 11:25:10-270603] <19662> blk        | Device [8:18] was unfrozen
+[04.08.2019 11:25:10-270608] <19662> defer_io   | Defer IO thread for the device stopped [8:18]
+[04.08.2019 11:25:11-269687] <19713> defer_io   | Defer IO thread for original device [8:18] completed
+[04.08.2019 11:25:11-269855] <19662> snapimage  | Destroy snapshot image for device [8:17]
+[04.08.2019 11:25:11-269858] <19662> snapimage  | Snapshot image queue cleanup
+[04.08.2019 11:25:11-280430] <19662> snapimage  | Snapshot image disk structure release
+[04.08.2019 11:25:11-280532] <19662> defer_io   | 0 MiB was processed
+[04.08.2019 11:25:11-280533] <19662> defer_io   | 0 MiB was copied
+[04.08.2019 11:25:11-280534] <19662> defer_io   | Defer IO processor was destroyed
+[04.08.2019 11:25:11-280540] <19662> snapimage  | Destroy snapshot image for device [8:18]
+[04.08.2019 11:25:11-280542] <19662> snapimage  | Snapshot image queue cleanup
+[04.08.2019 11:25:11-292825] <19662> snapimage  | Snapshot image disk structure release
+[04.08.2019 11:25:11-292921] <19662> defer_io   | 0 MiB was processed
+[04.08.2019 11:25:11-292923] <19662> defer_io   | 0 MiB was copied
+[04.08.2019 11:25:11-292924] <19662> defer_io   | Defer IO processor was destroyed
+[04.08.2019 11:25:11-292931] <19662> snapshot   | Device [8:17] successfully removed from snapshot
+[04.08.2019 11:25:11-292934] <19662> snapshot   | Device [8:18] successfully removed from snapshot
+[04.08.2019 11:25:11-341358] <19711> ctrl_fops  | id=[25f6689c-371c-44c4-bbaa701547188856]
+[04.08.2019 11:25:11-341438] <19711> snapstore  | Snapstore fill size: 0 MiB
+[04.08.2019 11:25:11-341442] <19711> snapstore  | Cleanup snapstore device for device [8:17]
+[04.08.2019 11:25:11-341442] <19711> snapstore  | Destroy snapstore device
+[04.08.2019 11:25:11-341464] <19711> snapstore  | Snapstore uuid [25f6689c-371c-44c4-bbaa701547188856]
+[04.08.2019 11:25:11-341467] <19711> snapstore  | Cleanup snapstore device for device [8:18]
+[04.08.2019 11:25:11-341467] <19711> snapstore  | Destroy snapstore device
+[04.08.2019 11:25:11-341477] <19711> snapstore  | Snapstore uuid [25f6689c-371c-44c4-bbaa701547188856]
+[04.08.2019 11:25:11-341483] <19711> snapstore  | Destroy snapstore with id=[25f6689c-371c-44c4-bbaa701547188856]
+[04.08.2019 11:25:11-348024] <19711> ctrl_pipe  | Snapstore termination
