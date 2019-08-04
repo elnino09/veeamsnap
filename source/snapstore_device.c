@@ -135,6 +135,8 @@ int snapstore_device_create( dev_t dev_id, snapstore_t* snapstore )
     int res = SUCCESS;
     snapstore_device_t* snapstore_device;
 
+    log_tr_dev_t( "Create snapstore_device for", dev_id );
+
     snapstore_device = (snapstore_device_t*)content_new( &SnapstoreDevices );
     if (NULL == snapstore_device)
         return -ENOMEM;

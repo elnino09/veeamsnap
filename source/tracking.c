@@ -57,7 +57,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
             sectStart = (bi_sector - blk_dev_get_start_sect( tracker->target_dev ));
             sectCount = sector_from_size( bi_size );
-            log_tr_format( "bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
+            //log_tr_format( "bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
 
             if ((bio->bi_end_io != blk_direct_bio_endio) &&
                 (bio->bi_end_io != blk_redirect_bio_endio) &&
@@ -75,7 +75,7 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
                 if (atomic_read( &tracker->is_captured ))
                 {// do copy-on-write
-                    log_tr( "tracker->is_captured=yes" );
+                    //log_tr( "tracker->is_captured=yes" );
                     int res = defer_io_redirect_bio( tracker->defer_io, bio, sectStart, sectCount, q, tracker_queue->original_make_request_fn, tracker );
                     if (SUCCESS == res)
                         do_lowlevel = false;

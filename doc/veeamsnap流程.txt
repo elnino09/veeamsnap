@@ -1,0 +1,182 @@
+veeamdeferio 线程：从dio里取出原始的bio，并根据操作的扇区，从原始设备读出原数据写入到snapstore_device
+
+
+创建快照镜像入口： snapshot_Create
+快照时会拉起一个defer_io_work_thread线程和snapimage_processor_thread
+
+
+snapimage_processor_thread
+
+
+defer_io_work_thread
+从tracker的dio队列取出节点，放入到queue_in_process和dio_copy_req中，并在snapstore_device里记录修改了哪些块，然后构造bio请求读取原设备上对应扇区的数据，读出的数据存放在dio_copy_req里的dio->buff里，然后再把dio_copy_req里的dio->buff里的数据写到snapstore里去，然后从queue_in_process取出dio修改cbt_map，并执行设备原来的make_rq_fn
+
+
+
+
+
+
+在创建快照镜像时，snapstore_file的存储位置是由调用者指定，
+bio_data_dir( orig_req->bio ) && bio_has_data( orig_req->bio ) 判断是否为写IO
+
+
+block_device结构代表了内核中的一个块设备。它可以表示整个磁盘或一个特定的分区。当这个结构代表一个分区时，它的bd_contains成员指向包含这个分区的设备，bd_part成员指向设备的分区结构。当这个结构代表一个块设备时，bd_disk成员指向设备的gendisk结构。
+
+
+
+
+snapshot_t
+每次快照会创建一个snapshot_t对象（不是每个块设备一个）
+
+tracker
+每一个要备份的块设备都有一个tracker对象，这个对象的重要成员有tracker_queue、cbt_map、defer_io对象
+
+tracker_queue
+因为veeamsnap会更改块设备的请求队列的make_request_fn，这里tracker_queue用来保存块设备原始的make_request_fn
+
+
+deferio对象
+在对块设备进行创建快照操作（snapshot_Create）后，每个块设备（也可以认为每个tracker）都有一个defer_io对象，这个deferio有一个成员dio_queue是用来存放块设备的IO请求（在原来bio上再封装一层称为dio）的。在创建快照后，veeamsnap会替换掉针对块设备的请求队列的make_request_fn，从而能够捕获每个bio，并且将符合条件（什么条件？）的bio放入到dio_queue。同时创建快照后每个块设备起一个veeamdeferio内核线程，这个线程负责读dio_queue里的IO请求并处理。注意的是，无论是在哪里处理的bio，只要是写io，都会触发更新写cbtmap（tracker_cbt_bitmap_set），即将write cbtmap对应的位设置为当前的快照号（从1递增，至255后又从0开始，刚好是一个byte的表示范围），那么什么时候会更新read cbtmap呢
+
+什么条件？
+能够被加到dio_queue里的bio需要满足的条件是(bio->bi_end_io != blk_direct_bio_endio) &&  (bio->bi_end_io != blk_redirect_bio_endio) &&  (bio->bi_end_io != blk_deferred_bio_endio)
+
+deferio、redirectio和redirectio是什么东西？
+blk_direct_bio_endio
+	_blk_dev_direct_bio_alloc
+		_dev_direct_submit_pages
+			blk_direct_submit_pages
+				_blk_dev_redirect_part_read_sync
+					blk_dev_redirect_part
+						blk_dev_redirect_read_zeroed
+							snapstore_device_read
+								_snapimage_request_read
+									_snapimage_processing
+										snapimage_processor_thread
+						snapstore_redirect_read
+							snapstore_device_read
+						snapstore_redirect_write
+							snapstore_device_write
+								_snapimage_request_write
+									_snapimage_processing
+						snapstore_device_read
+		blk_direct_submit_page
+
+blk_redirect_bio_endio
+	_blk_dev_redirect_bio_alloc
+		_blk_dev_redirect_part_read_fast
+			blk_dev_redirect_part
+
+
+blk_deferred_bio_endio
+	_blk_deferred_bio_alloc
+		_blk_deferred_submit_pages
+			blk_deferred_submit_pages
+				blk_deferred_request_read_original
+					defer_io_work_thread
+					_snapstore_device_copy_on_write
+						snapstore_device_write
+				blk_deferred_request_store_file
+					snapstore_request_store
+						snapstore_device_store
+							defer_io_work_thread
+							_snapstore_device_copy_on_write
+				blk_deferred_request_store_multidev
+
+基本都是在拉起的两个进程里调用的
+
+defer_io_work_thread
+1. _defer_io_copy_prepare不断从dio_queue里取出dio并放到一个queue_in_process链表里，然后往snapstore_device里添加一个io请求。这个添加过程比较绕，首先判断snapstore_device->store_block_map里对应的位是否已经有数据，有了的话就不用管了；如果还没有，那么他从对应的snapstore（假设具体实现为snapstore_file）里取出一个空块，并将store_block_map里对应的块数据指向这一个空块。结合起来看一下，store_block_map里存放的块的数据格式的是blk_descr_unify_t*，而回顾一下snapstore_add_range里的描述（所有每一个snapstore_file有一堆pool_el_t，每个pool_el_t有一堆blk_descr_file_t，每个blk_descr_file_t指向一个rangelist_t链表，每个blk_descr_file_t表示的扇区范围就是一个snapstore块大小。）。所以这里就是把store_block_map里的块的数据指向snapstore里的一个块（大家都是snapstore块）。同时注意的是从snapstore_file取一个空块是按顺序取即可，因为snapstore_file有一个take_cnt计数记录着已经用到了blocks成员里的第几个元素了，在取空块时如果尚有空余的话直接返回第take_cnt个元素即可，如果没有空余元素说明snapstore已经塞满了，这时会标记snapstore_device为已损坏。最后还有一步：构造一个blk_deferred_t对象加入到dio_copy_req链表。这个blk_deferred_t对象比较简单，有一个range_t sect成员记录着操作的扇区（需要注意的是sect->ofs被设置为按snapstore块计算的索引，sect->cnt也设置为一个snapstore块的大小，buff成员则分配了可以容纳sect->cnt大小数据的空间）
+
+
+什么时候会更新read cbtmap呢
+
+
+cbp_map
+每个tracker有两个cbt_map，一个read map和一个write map，这个是记录块设备的块信息的，但是他用的块大小是cbt块大小，而不是521B的扇区大小，通常每个snapstore块有2**9个扇区。cbtmap使用page_array_t（使用页）记录cbt块的信息，在页里，每个cbt块只占1byte
+
+orig_dev
+在under tracking后，原设备的请求队列make_request_fn被替换为tracking_make_request，在tracking_make_request里，它判断了bio->bi_end_io（bi_end_io bio的I/O操作结束时调用的方法）是不是deferio、redirectio和redirectio，如果不是，那么会调用defer_io_redirect_bio执行COW，这个defer_io_redirect_bio不复杂，主要是把bio封装成defer_io_original_request_t结构体，然后扔到defer_io的dio_queue队列里去；如果是的话，那么会执行原设备的make_request_fn，并设置cbt_map对应的块设置为当前快照号。
+
+
+
+问题：cbt_map在这里干嘛的？设置后在哪里被使用
+问题：什么时候设置的bio->bi_end_io？
+问题：snapstore_file_t的pool是用来干嘛的？
+问题：经常看到的"Snapstore add 1 ranges"，这个又是干嘛
+
+
+经常看到的"Snapstore add 1 ranges"，这个又是干嘛
+函数名叫snapstore_add_file，往snapstore里添加一个文件？而且似乎每次都加的1G大小
+首先这个是针对snapstore->file的，其他类型的snapstore无效。这个函数基本干的事就是往snapstore_file->pool里塞东西，而且还是比较整齐的塞进去，有多整齐呢？这里会先构造出一个rangelist_t链表，rangelist_t链表后面拖着的节点类型是rangelist_el_t类型的，每一个rangelist_el_t对象可以放一个range_t（就是扇区范围表示），那么一个rangelist_t链表就是一大串range_t。这个rangelist_t链表里的所有range_t扇区范围加起来大小是一个snapstore块大小。
+至于snapstore_file的pool成员，他是个blk_descr_pool_t对象，里面有个head成员，是个链表指针，这个指针后面就拖着一大堆的pool_el_t节点，pool_el_t结构体最后一个成员是blk_descr_unify_t blocks[0]，这就意味着该结构体后面会接一个blk_descr_unify_t数组，其实对于snapstore_file来说这是一个blk_descr_file_t数组，blk_descr_file_t结构体第一个成员是blk_descr_unify_t，所以可以通过blk_descr_unify_t指针转换来访问数组里的blk_descr_unify_t成员。blk_descr_file_t有一个成员rangelist_t rangelist，这个成员里只有一个链表指针，指针就指向上面说的rangelist_t链表。所有每一个snapstore_file有一堆pool_el_t，每个pool_el_t有一堆blk_descr_file_t，每个blk_descr_file_t指向一个rangelist_t链表，每个blk_descr_file_t表示的扇区范围就是一个snapstore块大小。
+
+
+dio_queue
+在创建快照后，veeamsnap会替换掉针对块设备的请求队列的make_request_fn，从而能够捕获每个bio，并且将符合条件（什么条件？）的bio放入到dio_queue，
+
+
+cbt_map在这里干嘛的？设置后在哪里被使用
+
+
+
+
+snapimage
+每个块设备会创建一个snapimage，它是内核的一个gendisk，容量跟原始设备容量一致
+在快照期间，会有/dev/veeamsnap[n]设备创建出来
+
+snapstore
+snapstore_t 是一个抽象层，根据store类型（可能是memory snapstore、multidevice snapstore、ordinal file snapstore）不同，它的成员 mem 、 multidev 、 file 会有不同取值，以ordinal file snapstore为例，它的 file 成员是一个 snapstore_file_t 类型，
+
+
+
+snapstore_file
+snapstore_file_t 是对于要保存snap的设备的，
+snapstore_file_t 有一个 blk_descr_pool_t 类型的 pool 成员，里面存放了什么东西呢？？
+
+
+
+
+snapstore_device
+在创建snapstore时会对每个设备（什么设备）创建snapstore_device，说明这个snapstore_device跟snapstore关系是比较密切的，每个snapstore_device有一个store_block_map成员，这个store_block_map保存也是设备里的块信息，但是他用的块大小是snapstore块大小，而不是521B的扇区大小，通常每个snapstore块有2**5个扇区。而且他是用blk_descr_array_t来存储的，这里又有几个概念：每256个块组成一个group，group用blk_descr_array_group_t结构体表示，blk_descr_array_group_t除了记录256个块的数据（是一个链表指针blk_descr_unify_t*，也typedef为 blk_descr_array_el_t）外，还用一个bitmap来记录那些块有数据，blk_descr_array_t->groups里保存就是这些group的指针（用页来保存，每个页保存若干指针）
+注意这里并没有什么块设备创建出来，仅仅是veeamsnap概念上的一个设备，不像snapimage有一个真正的/dev/veeamsnap[n]
+
+
+deferio
+
+
+redirectio
+
+
+directio
+
+
+
+快照流程：
+1. Tracker queue创建，如已存在则不用新建
+2. Create snapstore创建一个snapstore
+3. 为每个块设备Create snapstore_device
+4. Snapstore add n ranges
+5. Create snapshot for devices，只创建一个snapshot
+6. 为每个块设备Snapshot captured
+7. 启动Defer IO thread
+8. 为每个块设备Create snapshot image
+9. 启动Snapshot image thread
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

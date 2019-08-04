@@ -142,6 +142,7 @@ int blk_descr_array_get( blk_descr_array_t* header, blk_descr_array_index_t inx,
             break;
         }
 
+        // 每256个块组成一个group，先求出在第几个group
         gr_idx = (size_t)((inx - header->first) >> BLK_DESCR_GROUP_LENGTH_SHIFT);
 
         if (SUCCESS != page_array_ptr_get(header->groups, gr_idx, (void**)&group)){
@@ -153,9 +154,10 @@ int blk_descr_array_get( blk_descr_array_t* header, blk_descr_array_index_t inx,
             break;
         }
 
-        val_idx = (size_t)((inx - header->first) & BLK_DESCR_GROUP_LENGTH_MASK);
-        bits = (1 << (val_idx & 0x7));
-        if (group->bitmap[val_idx >> 3] & bits)
+        val_idx = (size_t)((inx - header->first) & BLK_DESCR_GROUP_LENGTH_MASK);  // 其实就是 (inx - header->first) / 256 的余。。
+                                                                                  // 这就是块在group内的第几bit
+        bits = (1 << (val_idx & 0x7));  // (val_idx & 0x7) 就是块在byte内的第几位
+        if (group->bitmap[val_idx >> 3] & bits)  // val_idx >> 3 就是块在group内的第几个byte
             *p_value = group->values[val_idx];
         else{
             res = -ENODATA;

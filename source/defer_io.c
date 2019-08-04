@@ -67,7 +67,7 @@ int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, 
     sector_t dios_sectors_count = 0;
 
     //fill copy_request set
-    // dios数满250或dios扇区数>(10M/512)
+    // dios数满250或dios扇区数>(10M/512)就跳出循环
     while (!queue_sl_empty( defer_io->dio_queue ) && (dios_count < DEFER_IO_DIO_REQUEST_LENGTH) && (dios_sectors_count < DEFER_IO_DIO_REQUEST_SECTORS_COUNT)){
 
         defer_io_original_request_t* dio_orig_req = (defer_io_original_request_t*)queue_sl_get_first( &defer_io->dio_queue );  // 从dio_queue取出第一个dio
@@ -76,7 +76,7 @@ int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, 
         queue_sl_push_back( queue_in_process, &dio_orig_req->content );  // dio放入queue_in_process链表
 
         if (!kthread_should_stop( ) && !snapstore_device_is_corrupted( defer_io->snapstore_device )){
-            if (bio_data_dir( dio_orig_req->bio ) && bio_has_data( dio_orig_req->bio )){
+            if (bio_data_dir( dio_orig_req->bio ) && bio_has_data( dio_orig_req->bio )){  // 写IO
                 res = snapstore_device_prepare_requests( defer_io->snapstore_device, &dio_orig_req->sect, dio_copy_req );
                 if (res != SUCCESS){
                     log_err_d( "Unable to execute Copy On Write algorithm: failed to add ranges to copy to snapstore request. errno=", res );
