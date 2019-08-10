@@ -306,7 +306,23 @@ int snapshot_Destroy( unsigned long long snapshot_id )
         log_err_format( "Unable to destroy snapshot [0x%llx]: cannot find snapshot by id", snapshot_id );
         return result;
     }
+/*
+    int inx = 0;
+    log_tr_format( "Release snapshot [0x%llx]", snapshot->id );
 
+    for (; inx < snapshot->dev_id_set_size; ++inx){
+        int status;
+        tracker_t* p_tracker = NULL;
+        dev_t dev = snapshot->dev_id_set[inx];
+
+        status = tracker_find_by_dev_id( dev, &p_tracker );
+        if (status == SUCCESS){
+            cbt_map_print(p_tracker->cbt_map);
+        }
+        else
+            log_err_dev_t( "Cannot find tracker for device ", dev );
+    }
+*/
     container_get( &snapshot->content );
     result = _snapshot_destroy( snapshot );
     if (result != SUCCESS){

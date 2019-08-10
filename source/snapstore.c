@@ -382,7 +382,7 @@ int snapstore_add_file( veeam_uuid_t* id, page_array_t* ranges, size_t ranges_cn
 
                 range_offset += rg.cnt;  // 可能一个range_t会被分成两块加入到snapstore->file->pool链表中，range_offset用来记录该range_t已被处理的扇区数
 
-                log_tr_range( "add rg=", &rg );
+                // log_tr_range( "add rg=", &rg );
 
                 res = rangelist_add( &blk_rangelist, &rg );  // 每一个rangelist_t对象都记录了一个大小为snapstore块大小的数据
                 if (res != SUCCESS){
@@ -589,7 +589,9 @@ int snapstore_check_halffill( veeam_uuid_t* unique_id, sector_t* fill_status )
     return SUCCESS;
 }
 
-
+/*
+ * 将dio_copy_req里的dio->buff数据写入到snapstore_file
+ */
 int snapstore_request_store( snapstore_t* snapstore, blk_deferred_request_t* dio_copy_req )
 {
     int res = SUCCESS;
@@ -619,6 +621,10 @@ int snapstore_request_store( snapstore_t* snapstore, blk_deferred_request_t* dio
     return res;
 }
 
+/*
+ * 从snapstore中读数据，扇区范围在blk_descr_ptr中指定
+ * 调用流程：读snapimage时如果对应范围在snapstore中，则转为对snapstore的读
+ */
 int snapstore_redirect_read( blk_redirect_bio_endio_t* rq_endio, snapstore_t* snapstore, blk_descr_unify_t* blk_descr_ptr, sector_t target_pos, sector_t rq_ofs, sector_t rq_count )
 {
     int res = SUCCESS;

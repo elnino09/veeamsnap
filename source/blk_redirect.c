@@ -381,6 +381,11 @@ int _blk_dev_redirect_part_read_sync( blk_redirect_bio_endio_t* rq_endio, int di
     return result;
 }
 
+/*
+ * 从blk_dev块设备中读数据（这个blk_dev可能是snapstore_file所在的块设备，也可能是原始的块设备）
+ * 调用流程：读snapimage时如果对应范围在snapstore中，则转为对snapstore的读，然后也调用到这里
+ *                       如果不在snapstore中，则转为对原始块设备的读
+ */
 int blk_dev_redirect_part( blk_redirect_bio_endio_t* rq_endio, int direction, struct block_device* blk_dev, sector_t target_pos, sector_t rq_ofs, sector_t rq_count )
 {
     struct request_queue *q = bdev_get_queue( blk_dev );
@@ -391,7 +396,7 @@ int blk_dev_redirect_part( blk_redirect_bio_endio_t* rq_endio, int direction, st
     //log_err_sect( "rq_count= ", rq_count );
     //log_err_sect( "logical_block_size_mask= ", logical_block_size_mask );
 
-    if (likely( logical_block_size_mask == 0 ))
+    if (likely( logical_block_size_mask == 0 ))  // 说明逻辑块大小为512B
         return _blk_dev_redirect_part_read_fast( rq_endio, direction, blk_dev, target_pos, rq_ofs, rq_count );
 
     if (likely( (0 == (target_pos & logical_block_size_mask)) && (0 == (rq_count & logical_block_size_mask)) ))

@@ -58,7 +58,9 @@ void _defer_io_finish( defer_io_t* defer_io, queue_sl_t* queue_in_progress )
 }
 
 /*
- * 从defer_io->dio_queue链表中取出第一个节点并放到queue_in_process和dio_copy_req中去
+ * 从defer_io->dio_queue链表中取出节点并放到queue_in_process
+ * 从对应的snapstore_file里取出一个空块，并将snapstore_device->store_block_map里对应的块数据指向这一个空块
+ * 最后还有一步：构造一个blk_deferred_t对象加入到dio_copy_req链表
  */
 int _defer_io_copy_prepare( defer_io_t* defer_io, queue_sl_t* queue_in_process, blk_deferred_request_t** dio_copy_req )
 {
@@ -135,14 +137,16 @@ int defer_io_work_thread( void* p )
                     log_err_d( "Unable to process defer IO request: failed to prepare copy request", dio_copy_result );
                     break;
                 }
-                if (NULL == dio_copy_req)
+                if (NULL == dio_copy_req)  // 只有写IOdio_copy_req才会有值
                     break;//nothing to copy
 
+                // COW，先复制原始数据
                 dio_copy_result = blk_deferred_request_read_original( defer_io->original_blk_dev, dio_copy_req );
                 if (dio_copy_result != SUCCESS){
                     log_err_d( "Unable to process defer IO request: failed to read data to copy request. errno=", dio_copy_result );
                     break;
                 }
+                // 再将原始数据写到snapstore_device
                 dio_copy_result = snapstore_device_store( defer_io->snapstore_device, dio_copy_req );
                 if (dio_copy_result != SUCCESS){
                     log_err_d( "Unable to process defer IO request: failed to write data from copy request. errno=", dio_copy_result );

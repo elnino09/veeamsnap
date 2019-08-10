@@ -162,6 +162,7 @@ void blk_deferred_bio_free( struct bio* bio )
 
 /*
  * 分配一个bio结构体
+ * bi_end_io为blk_deferred_bio_endio
  */
 struct bio* _blk_deferred_bio_alloc( int nr_iovecs )
 {
@@ -226,7 +227,14 @@ void blk_deferred_bio_endio( struct bio *bio )
     bio_put( bio );
 }
 
-
+/*
+ * 构造bio并提交，bio的扇区范围由ofs_sector、size_sector指定，页范围由arr、arr_ofs指定
+ * ofs_sector: 起始位置
+ * size_sector: 待处理扇区数
+ * arr: io处理数据使用的页
+ * arr_ofs: io处理数据使用的页在arr中的位移
+ * 返回：已处理扇区数
+ */
 sector_t _blk_deferred_submit_pages(
     struct block_device* blk_dev,
     blk_deferred_request_t* dio_req,
@@ -242,7 +250,7 @@ sector_t _blk_deferred_submit_pages(
     int page_inx = arr_ofs >> (PAGE_SHIFT - SECTOR512_SHIFT);
     sector_t process_sect = 0;
 
-    nr_iovecs = page_count_calc_sectors( ofs_sector, size_sector );
+    nr_iovecs = page_count_calc_sectors( ofs_sector, size_sector );  // 需要几个页
 
     while (NULL == (bio = _blk_deferred_bio_alloc( nr_iovecs ))){
         //log_tr_d( "Failed to allocate bio for defer IO. nr_iovecs=", nr_iovecs );
@@ -313,7 +321,14 @@ sector_t _blk_deferred_submit_pages(
     return process_sect;
 }
 
-
+/*
+ * 构造bio并提交，bio的扇区范围由ofs_sector、size_sector指定，页范围由arr、arr_ofs指定
+ * ofs_sector: 起始位置
+ * size_sector: 待处理扇区数
+ * arr: io处理数据使用的页
+ * arr_ofs: io处理数据使用的页在arr中的位移
+ * 返回：已处理扇区数
+ */
 sector_t blk_deferred_submit_pages(
     struct block_device* blk_dev,
     blk_deferred_request_t* dio_req,
@@ -488,7 +503,7 @@ int blk_deferred_request_wait( blk_deferred_request_t* dio_req )
 }
 
 /*
- * 从原始块设备上读出对应扇区的内容
+ * 将dio_copy_req中涉及到的所有扇区从原始块设备上读出，dio_copy_req是一个存放blk_deferred_t结点的链表
  */
 int blk_deferred_request_read_original( struct block_device* original_blk_dev, blk_deferred_request_t* dio_copy_req )
 {
@@ -511,8 +526,8 @@ int blk_deferred_request_read_original( struct block_device* original_blk_dev, b
 #endif
 
             sector_t page_array_ofs = 0;
-            sector_t ofs = dio->sect.ofs;
-            sector_t cnt = dio->sect.cnt;
+            sector_t ofs = dio->sect.ofs;  // 注意这里是以扇区为单位
+            sector_t cnt = dio->sect.cnt;  // 注意这里是以扇区为单位
 
             if (cnt != blk_deferred_submit_pages( original_blk_dev, dio_copy_req, READ, page_array_ofs, dio->buff, ofs, cnt )){
                 log_err_sect( "Failed to submit reading defer IO request. ofs=", dio->sect.ofs );

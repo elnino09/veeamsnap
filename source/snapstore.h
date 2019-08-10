@@ -25,7 +25,8 @@ typedef struct snapstore_s
 #endif
 
     ctrl_pipe_t* ctrl_pipe;
-    sector_t empty_limit;
+    sector_t empty_limit;      // default 64 * (1024 * 1024 / SECTOR512)
+                               // 相对于一个警戒值，当实际空余的空间小于该值时，halffilled会被设置为true
 
     volatile bool halffilled;
     volatile bool overflowed;  // file->pool里的take数量超过总数

@@ -721,12 +721,30 @@ blk_qc_t _snapimage_make_request(struct request_queue *q, struct bio *bio)
         }
 
         {
-            int res = _snapimage_throttling( image->defer_io );
+            int res = _snapimage_throttling( image->defer_io );  // 当dio_queue为空才执行，是为了先处理dio吗？
             if (SUCCESS != res){
                 log_err_d( "Failed to throttle snapshot image device. errno=", res );
                 _snapimage_bio_complete( bio, res );
                 break;
             }
+        }
+
+        sector_t bi_sector;
+        unsigned int bi_size;
+        sector_t sectStart = 0;
+        sector_t sectCount = 0;
+        bool is_writeio = false;
+
+        bi_sector = bio_bi_sector( bio );
+        bi_size = bio_bi_size(bio);
+        sectStart = bi_sector;
+        sectCount = sector_from_size( bi_size );
+        if (bio_data_dir( bio ) && bio_has_data( bio )){
+            is_writeio = true;
+            log_tr_format( "snapimage write bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
+        }
+        else {
+            log_tr_format( "snapimage read bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
         }
 
         // rq_proc_queue->content_size = sizeof( blk_redirect_bio_endio_t )

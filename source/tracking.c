@@ -57,6 +57,26 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
             sectStart = (bi_sector - blk_dev_get_start_sect( tracker->target_dev ));
             sectCount = sector_from_size( bi_size );
+
+            bool is_blk_direct_bio_endio = false;
+            bool is_blk_redirect_bio_endio = false;
+            bool is_blk_deferred_bio_endio = false;
+            bool is_write_io = false;
+
+            if (bio_data_dir( bio ) && bio_has_data( bio ))
+                is_write_io = true;
+            if (bio->bi_end_io == blk_direct_bio_endio)
+                is_blk_direct_bio_endio = true;
+            if (bio->bi_end_io == blk_redirect_bio_endio)
+                is_blk_redirect_bio_endio = true;
+            if (bio->bi_end_io == blk_deferred_bio_endio)
+                is_blk_deferred_bio_endio = true;
+
+            log_tr_format( "is_blk_direct_bio_endio: %d, is_blk_redirect_bio_endio: %d, "
+                "is_blk_deferred_bio_endio: %d, is_write_io: %d, "
+                "bio range: [0x%llx:%d], sect range: [0x%llx:%d]", 
+                is_blk_direct_bio_endio, is_blk_redirect_bio_endio, is_blk_deferred_bio_endio, is_write_io,
+                bi_sector, bi_size, sectStart, sectCount);
             //log_tr_format( "bio range: [0x%llx:%d], sect range: [0x%llx:%d]", bi_sector, bi_size, sectStart, sectCount);
 
             if ((bio->bi_end_io != blk_direct_bio_endio) &&
@@ -90,9 +110,10 @@ blk_qc_t tracking_make_request( struct request_queue *q, struct bio *bio )
 
                     if (tracker && bio_data_dir( bio ) && bio_has_data( bio )){
                         cbt_locked = tracker_cbt_bitmap_lock( tracker );
-                        if (cbt_locked)
+                        if (cbt_locked) {
                             //log_tr("tracker_cbt_bitmap_set");
                             tracker_cbt_bitmap_set( tracker, sectStart, sectCount );
+                        }
                         //tracker_CbtBitmapUnlock( tracker );
                     }
                     //call low level block device
@@ -296,6 +317,7 @@ int tracking_read_cbt_bitmap( dev_t dev_id, unsigned int offset, size_t length, 
     int result = SUCCESS;
     tracker_t* tracker = NULL;
 
+    log_tr_dev_t("tracking_read_cbt_bitmap for ", dev_id);
     result = tracker_find_by_dev_id(dev_id, &tracker);
     if ( SUCCESS == result ){
         if (atomic_read( &tracker->is_captured )){

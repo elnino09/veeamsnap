@@ -216,8 +216,8 @@ bool _snapstore_device_is_block_stored( snapstore_device_t* snapstore_device, bl
 }
 
 /*
- * 看函数名是往snapstore_device设备里加入一个io请求，
- * 创建一个dio节点并加入blk_deferred_request_t->dios链表
+ * 从对应的snapstore_file里取出一个空块，并将store_block_map里对应的块数据指向这一个空块
+ * 构造一个blk_deferred_t对象加入到dio_copy_req链表
  */
 int snapstore_device_add_request( snapstore_device_t* snapstore_device, blk_descr_array_index_t block_index, blk_deferred_request_t** dio_copy_req )
 {
@@ -279,6 +279,11 @@ int snapstore_device_add_request( snapstore_device_t* snapstore_device, blk_desc
     return res;
 }
 
+/*
+ * 判断snapstore_device->store_block_map里对应的位是否已经有数据，有了的话就不用管了；
+ * 如果还没有，那么从对应的snapstore_file里取出一个空块，并将snapstore_device->store_block_map里对应的块数据指向这一个空块
+ * 最后还有一步：构造一个blk_deferred_t对象加入到dio_copy_req链表
+ */
 int snapstore_device_prepare_requests( snapstore_device_t* snapstore_device, range_t* copy_range, blk_deferred_request_t** dio_copy_req )
 {
     int res = SUCCESS;
@@ -316,6 +321,10 @@ int snapstore_device_store( snapstore_device_t* snapstore_device, blk_deferred_r
     return res;
 }
 
+/*
+ * 读snapstore_device，读取范围由rq_endio表示
+ * 根据数据是否在snapstore_file中，会转化为对原始设备或snapstore_file的读
+ */
 int snapstore_device_read( snapstore_device_t* snapstore_device, blk_redirect_bio_endio_t* rq_endio )
 {
     int res = SUCCESS;
@@ -362,6 +371,7 @@ int snapstore_device_read( snapstore_device_t* snapstore_device, blk_redirect_bi
             (((sector_t)(block_index + 1)) << SNAPSTORE_BLK_SHIFT) - (rq_range.ofs + blk_ofs_start),
             rq_range.cnt - blk_ofs_start );
 
+        // 先看一下snapstore_device里有没有该扇区的数据
         status = blk_descr_array_get( &snapstore_device->store_block_map, block_index, &blk_descr );
         if (SUCCESS != status){
             if (-ENODATA == status)
@@ -372,7 +382,7 @@ int snapstore_device_read( snapstore_device_t* snapstore_device, blk_redirect_bi
                 break;
             }
         }
-        if (blk_descr ){
+        if (blk_descr ){  // 如果snapstore_device里有该扇区数据，那么转为读snapstore
             //push snapstore read
             res = snapstore_redirect_read( rq_endio, snapstore_device->snapstore, blk_descr, rq_range.ofs + blk_ofs_start, blk_ofs_start, blk_ofs_count );
             if (res != SUCCESS){

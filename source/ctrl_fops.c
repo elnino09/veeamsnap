@@ -44,6 +44,8 @@ ssize_t ctrl_read(struct file *fl, char __user *buffer, size_t length, loff_t *o
     ssize_t bytes_read = 0;
     ctrl_pipe_t* pipe = (ctrl_pipe_t*)fl->private_data;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     bytes_read = ctrl_pipe_read( pipe, buffer, length );
     if (bytes_read == 0)
         if (fl->f_flags & O_NONBLOCK)
@@ -56,6 +58,8 @@ ssize_t ctrl_read(struct file *fl, char __user *buffer, size_t length, loff_t *o
 ssize_t ctrl_write( struct file *fl, const char __user *buffer, size_t length, loff_t *offset )
 {
     ssize_t bytes_wrote = 0;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     ctrl_pipe_t* pipe = (ctrl_pipe_t*)fl->private_data;
     if (NULL == pipe){
@@ -72,6 +76,8 @@ unsigned int ctrl_poll( struct file *fl, struct poll_table_struct *wait )
 {
     ctrl_pipe_t* pipe = (ctrl_pipe_t*)fl->private_data;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     return ctrl_pipe_poll( pipe );
 }
 
@@ -79,6 +85,8 @@ unsigned int ctrl_poll( struct file *fl, struct poll_table_struct *wait )
 int ctrl_open(struct inode *inode, struct file *fl)
 {
     fl->f_pos = 0;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     try_module_get( THIS_MODULE );
 
@@ -98,6 +106,8 @@ int ctrl_open(struct inode *inode, struct file *fl)
 int ctrl_release(struct inode *inode, struct file *fl)
 {
     int result = SUCCESS;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if ( atomic_read( &g_dev_open_cnt ) > 0 ){
         module_put( THIS_MODULE );
@@ -121,6 +131,7 @@ int ioctl_compatibility_flags( unsigned long arg )
 
     logging_renew_check( );
 
+    log_tr_s( "Called ", __FUNCTION__ );
     //log_tr( "Get compatibility flags" );
 
     param.flags = 0;
@@ -140,6 +151,7 @@ int ioctl_compatibility_flags( unsigned long arg )
 int ioctl_get_version( unsigned long arg )
 {
     log_tr( "Get version" );
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_to_user( (void*)arg, &version, sizeof( struct ioctl_getversion_s ) )){
         log_err( "Unable to get version: invalid user buffer" );
@@ -152,6 +164,7 @@ int ioctl_get_version( unsigned long arg )
 int ioctl_tracking_add( unsigned long arg )
 {
     struct ioctl_dev_id_s dev;
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &dev, (void*)arg, sizeof( struct ioctl_dev_id_s ) )){
         log_err( "Unable to add device under tracking: invalid user buffer" );
@@ -164,6 +177,8 @@ int ioctl_tracking_add( unsigned long arg )
 int ioctl_tracking_remove( unsigned long arg )
 {
     struct ioctl_dev_id_s dev;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &dev, (void*)arg, sizeof( struct ioctl_dev_id_s ) )){
         log_err( "Unable to remove device from tracking: invalid user buffer" );
@@ -180,6 +195,7 @@ int ioctl_tracking_collect( unsigned long arg )
     int res;
     struct ioctl_tracking_collect_s get;
 
+    log_tr_s( "Called ", __FUNCTION__ );
     log_tr( "Collecting tracking devices:" );
 
     if (0 != copy_from_user( &get, (void*)arg, sizeof( struct ioctl_tracking_collect_s ) )){
@@ -239,6 +255,8 @@ int ioctl_tracking_block_size( unsigned long arg )
 {
     unsigned int blk_sz = CBT_BLOCK_SIZE;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     if (0 != copy_to_user( (void*)arg, &blk_sz, sizeof( unsigned int ) )){
         log_err( "Unable to get tracking block size: invalid user buffer for arguments" );
         return -ENODATA;
@@ -249,6 +267,8 @@ int ioctl_tracking_block_size( unsigned long arg )
 int ioctl_tracking_read_cbt_map( unsigned long arg )
 {
     struct ioctl_tracking_read_cbt_bitmap_s readbitmap;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &readbitmap, (void*)arg, sizeof( struct ioctl_tracking_read_cbt_bitmap_s ) )){
         log_err( "Unable to read CBT map: invalid user buffer" );
@@ -269,6 +289,8 @@ int ioctl_tracking_mark_dirty_blocks(unsigned long arg)
     struct block_range_s* p_dirty_blocks;
     size_t buffer_size;
     int result = SUCCESS;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user(&param, (void*)arg, sizeof(struct ioctl_tracking_mark_dirty_blocks_s))){
         log_err("Unable to mark dirty blocks: invalid user buffer");
@@ -302,6 +324,8 @@ int ioctl_snapshot_create( unsigned long arg )
     int status;
     struct ioctl_snapshot_create_s param;
     struct ioctl_dev_id_s* pk_dev_id = NULL;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_snapshot_create_s ) )){
         log_err( "Unable to create snapshot: invalid user buffer" );
@@ -360,6 +384,8 @@ int ioctl_snapshot_destroy( unsigned long arg )
 {
     unsigned long long param;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     if (0 != copy_from_user( &param, (void*)arg, sizeof( unsigned long long ) )){
         log_err( "Unable to destroy snapshot: invalid user buffer" );
         return -ENODATA;
@@ -374,6 +400,8 @@ int ioctl_snapstore_create( unsigned long arg )
     struct ioctl_snapstore_create_s param;
     struct ioctl_dev_id_s* pk_dev_id = NULL;
     size_t dev_id_buffer_size;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_snapstore_create_s ) )){
         log_err( "Unable to create snapstore: invalid user buffer" );
@@ -435,6 +463,8 @@ int ioctl_snapstore_file( unsigned long arg )
     page_array_t* ranges = NULL;//struct ioctl_range_s* ranges = NULL;    
     size_t ranges_buffer_size;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_snapstore_file_add_s ) )){
         log_err( "Unable to add file to snapstore: invalid user buffer" );
         return -EINVAL;
@@ -470,6 +500,8 @@ int ioctl_snapstore_memory( unsigned long arg )
     int res = SUCCESS;
     struct ioctl_snapstore_memory_limit_s param;
 
+    log_tr_s( "Called ", __FUNCTION__ );
+
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_snapstore_memory_limit_s ) )){
         log_err( "Unable to add memory block to snapstore: invalid user buffer" );
         return -EINVAL;
@@ -483,6 +515,8 @@ int ioctl_snapstore_cleanup( unsigned long arg )
 {
     int res = SUCCESS;
     struct ioctl_snapstore_cleanup_s param;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_snapstore_cleanup_s ) )){
         log_err( "Unable to perform snapstore cleanup: invalid user buffer" );
@@ -548,7 +582,8 @@ int ioctl_snapshot_errno( unsigned long arg )
     int res;
     struct ioctl_snapshot_errno_s param;
 
-    //log_tr( "Snapshot get errno for device");
+    log_tr_s( "Called ", __FUNCTION__ );
+    log_tr( "Snapshot get errno for device");
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_dev_id_s ) )){
         log_err( "Unable failed to get snapstore error code: invalid user buffer" );
@@ -572,7 +607,8 @@ int ioctl_collect_snapshotdata_location_start( unsigned long arg )
 {
     struct ioctl_collect_snapshotdata_location_start_s param;
 
-    //log_tr( "Collect snapshot data location start" );
+    log_tr_s( "Called ", __FUNCTION__ );
+    log_tr( "Collect snapshot data location start" );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_collect_snapshotdata_location_start_s ) )){
 		log_err("Unable to collect location of snapstore file: invalid user buffer");
@@ -593,7 +629,8 @@ int ioctl_collect_snapshotdata_location_get( unsigned long arg )
     rangelist_t ranges;
     size_t ranges_count = 0;
 
-    //log_tr( "Collect snapshot data location get" );
+    log_tr_s( "Called ", __FUNCTION__ );
+    log_tr( "Collect snapshot data location get" );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_collect_snapshotdata_location_get_s ) )){
         log_err( "Unable to get location of snapstore file: invalid input buffer" );
@@ -655,7 +692,8 @@ int ioctl_collect_snapshotdata_location_complete( unsigned long arg )
 {
     struct ioctl_collect_snapshotdata_location_complete_s param;
 
-    //log_tr( "Collect snapshot data location complete" );
+    log_tr_s( "Called ", __FUNCTION__ );
+    log_tr( "Collect snapshot data location complete" );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_collect_snapshotdata_location_complete_s ) )){
         log_err( "Unable to collect location of snapstore file: invalid user buffer" );
@@ -669,6 +707,8 @@ int ioctl_collect_snapimages( unsigned long arg )
 {
     int status = SUCCESS;
     struct ioctl_collect_shapshot_images_s param;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     if (0 != copy_from_user( &param, (void*)arg, sizeof( struct ioctl_collect_shapshot_images_s ) )){
         log_err( "Unable to collect snapshot images: invalid user buffer" );
@@ -782,6 +822,8 @@ long ctrl_unlocked_ioctl( struct file *filp, unsigned int cmd, unsigned long arg
 {
     long status = -ENOTTY;
     size_t inx = 0;
+
+    log_tr_s( "Called ", __FUNCTION__ );
 
     while (veeam_ioctl_table[inx].cmd != 0){
         if (veeam_ioctl_table[inx].cmd == cmd){

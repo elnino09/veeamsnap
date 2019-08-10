@@ -198,7 +198,12 @@ int cbt_map_set( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector_cnt 
     {
         byte_t snap_number = (byte_t)cbt_map->snap_number_active;
 
+        size_t cbt_block_first = ( size_t )(sector_start >> cbt_map->sect_in_block_degree);
+        size_t cbt_block_last = (size_t)((sector_start + sector_cnt -1) >> cbt_map->sect_in_block_degree); //inclusive
+        log_tr_format("write cbtmap [0x%llx-0x%llx] set to %d", cbt_block_first, cbt_block_last, snap_number);
+
         res = _cbt_map_set( cbt_map, sector_start, sector_cnt, snap_number, _get_writable( cbt_map ) );
+
     }
     _cbt_map_unlock( cbt_map );
     return res;
@@ -209,6 +214,11 @@ int cbt_map_set_both( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector
     int res = SUCCESS;
     _cbt_map_lock( cbt_map );
     {
+        size_t cbt_block_first = ( size_t )(sector_start >> cbt_map->sect_in_block_degree);
+        size_t cbt_block_last = (size_t)((sector_start + sector_cnt -1) >> cbt_map->sect_in_block_degree); //inclusive
+        log_tr_format("write cbtmap [0x%llx-0x%llx] set to %d", cbt_block_first, cbt_block_last, (byte_t)cbt_map->snap_number_active);
+        log_tr_format("read cbtmap [0x%llx-0x%llx] set to %d", cbt_block_first, cbt_block_last, (byte_t)cbt_map->snap_number_previous);
+
         res = _cbt_map_set(cbt_map, sector_start, sector_cnt, (byte_t)cbt_map->snap_number_active, _get_writable(cbt_map));
         if (res == SUCCESS)
             res = _cbt_map_set(cbt_map, sector_start, sector_cnt, (byte_t)cbt_map->snap_number_previous, _get_readable(cbt_map));
@@ -220,6 +230,9 @@ int cbt_map_set_both( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector
 size_t cbt_map_read_to_user( cbt_map_t* cbt_map, void __user* user_buff, size_t offset, size_t size )
 {
     size_t readed = 0;
+
+    log_tr( "fixme: cbt_map_read_to_user" );
+    cbt_map_print(cbt_map);
     do{
         size_t real_size = min( (cbt_map->map_size - offset), size );
 
@@ -239,5 +252,32 @@ size_t cbt_map_read_to_user( cbt_map_t* cbt_map, void __user* user_buff, size_t 
     } while (false);
 
     return readed;
+}
+
+int map_print( page_array_t* map, size_t size )
+{
+    size_t idx;
+    int res = SUCCESS;
+    for (idx = 0; idx <= size; ++idx){
+        byte_t num;
+        res = page_array_byte_get( map, idx, &num );
+        if (SUCCESS == res){
+            log_tr_format("idx: %lld, value: 0x%x", idx, num);
+        }
+
+        if (SUCCESS != res){
+            log_err_format( "read map failed." );
+            break;
+        }
+    }
+    return res;
+}
+
+void cbt_map_print( cbt_map_t* cbt_map)
+{
+    log_tr("write map is:");
+    map_print(_get_writable(cbt_map), cbt_map->map_size);
+    log_tr("read map is:");
+    map_print(_get_readable(cbt_map), cbt_map->map_size);
 }
 

@@ -34,6 +34,9 @@ int cbt_map_set_both( cbt_map_t* cbt_map, sector_t sector_start, sector_t sector
 
 size_t cbt_map_read_to_user( cbt_map_t* cbt_map, void __user * user_buffer, size_t offset, size_t size );
 
+int map_print( page_array_t* map, size_t size );
+void cbt_map_print( cbt_map_t* cbt_map);
+
 
 static inline cbt_map_t* cbt_map_get_resource( cbt_map_t* cbt_map )
 {

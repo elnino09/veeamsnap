@@ -160,6 +160,7 @@ blk_descr_unify_t* blk_descr_pool_take( blk_descr_pool_t* pool, size_t blk_descr
 
         ++pool->take_cnt;
     } while (false);
+    log_tr_format("pool take_cnt: %lld, total_cnt: %lld", pool->take_cnt, pool->total_cnt);
     mutex_unlock(&pool->lock);
     return result;
 }
