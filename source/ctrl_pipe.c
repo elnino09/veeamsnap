@@ -146,6 +146,7 @@ ssize_t ctrl_pipe_write( ctrl_pipe_t* pipe, const char __user *buffer, size_t le
         switch (command){
         case VEEAMSNAP_CHARCMD_INITIATE:
         {
+            log_tr( "VEEAMSNAP_CHARCMD_INITIATE" );
             ssize_t res = ctrl_pipe_command_initiate( pipe, buffer + processed, length - processed );
             if (res >= 0)
                 processed += res;
@@ -155,6 +156,7 @@ ssize_t ctrl_pipe_write( ctrl_pipe_t* pipe, const char __user *buffer, size_t le
             break;
         case VEEAMSNAP_CHARCMD_NEXT_PORTION:
         {
+            log_tr( "VEEAMSNAP_CHARCMD_NEXT_PORTION" );
             ssize_t res = ctrl_pipe_command_next_portion( pipe, buffer + processed, length - processed );
             if (res >= 0)
                 processed += res;
@@ -165,6 +167,7 @@ ssize_t ctrl_pipe_write( ctrl_pipe_t* pipe, const char __user *buffer, size_t le
 #ifdef SNAPSTORE_MULTIDEV
         case VEEAMSNAP_CHARCMD_NEXT_PORTION_MULTIDEV:
         {
+            log_tr( "VEEAMSNAP_CHARCMD_NEXT_PORTION_MULTIDEV" );
             ssize_t res = ctrl_pipe_command_next_portion_multidev( pipe, buffer + processed, length - processed );
             if (res >= 0)
                 processed += res;
@@ -186,6 +189,7 @@ unsigned int ctrl_pipe_poll( ctrl_pipe_t* pipe )
     unsigned int mask = 0;
 
     if (!container_empty( &pipe->cmd_to_user )){
+        log_tr ( "ctrl_pipe_poll readable" );
         mask |= (POLLIN | POLLRDNORM);     /* readable */
     }
     mask |= (POLLOUT | POLLWRNORM);   /* writable */
@@ -225,7 +229,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
         }
         unique_id = (veeam_uuid_t*)(kernel_buffer + processed);
         processed += 16;
-        //log_tr_uuid( "unique_id=", unique_id );
+        log_tr_uuid( "unique_id=", unique_id );
 
 
         //get snapstore empty limit
@@ -235,7 +239,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
         }
         stretch_empty_limit = *(stream_size_t*)(kernel_buffer + processed);
         processed += sizeof( stream_size_t );
-        //log_tr_lld( "stretch_empty_limit=", stretch_empty_limit );
+        log_tr_lld( "stretch_empty_limit=", stretch_empty_limit );
 
 
         //get snapstore device id
@@ -245,7 +249,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
         }
         snapstore_dev_id = (struct ioctl_dev_id_s*)(kernel_buffer + processed);
         processed += sizeof( struct ioctl_dev_id_s );
-        //log_tr_dev_t( "snapstore_dev_id=", MKDEV( snapstore_dev_id->major, snapstore_dev_id->minor ) );
+        log_tr_dev_t( "snapstore_dev_id=", MKDEV( snapstore_dev_id->major, snapstore_dev_id->minor ) );
 
 
         //get device id list length
@@ -255,7 +259,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
         }
         dev_id_list_length = *(unsigned int*)(kernel_buffer + processed);
         processed += sizeof( unsigned int );
-        //log_tr_d( "dev_id_list_length=", dev_id_list_length );
+        log_tr_d( "dev_id_list_length=", dev_id_list_length );
 
 
         //get devices id list
@@ -299,6 +303,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
             for (inx = 0; inx < dev_id_set_length; ++inx)
                 dev_set[inx] = MKDEV( dev_id_list[inx].major, dev_id_list[inx].minor );
 
+            log_tr_uuid( "snapstore_create with id=", unique_id );
             result = snapstore_create( unique_id, snapstore_dev, dev_set, dev_id_set_length );
             dbg_kfree( dev_set );
             if (result != SUCCESS){
@@ -306,6 +311,7 @@ ssize_t ctrl_pipe_command_initiate( ctrl_pipe_t* pipe, const char __user *buffer
                 break;
             }
 
+            log_tr_sect( "snapstore_stretch_initiate with empty_limit=", sector_from_streamsize( stretch_empty_limit ) );
             result = snapstore_stretch_initiate( unique_id, pipe, sector_from_streamsize( stretch_empty_limit ) );
             if (result != SUCCESS){
                 log_err_uuid( "Failed to initiate stretch snapstore", unique_id );
@@ -343,7 +349,7 @@ ssize_t ctrl_pipe_command_next_portion( ctrl_pipe_t* pipe, const char __user *bu
             break;
         }
         processed += 16;
-        //log_tr_uuid( "snapstore unique_id=", unique_id );
+        log_tr_uuid( "snapstore unique_id=", &unique_id );
 
         //get ranges length
         if ((length - processed) < 4){
@@ -378,6 +384,7 @@ ssize_t ctrl_pipe_command_next_portion( ctrl_pipe_t* pipe, const char __user *bu
         processed += ranges_buffer_size;
 
         {
+            log_tr_format( "Snapstore add file, ranges_length: %d, ", ranges_length);
             result = snapstore_add_file( &unique_id, ranges, ranges_length );
 
             if (result != SUCCESS){
